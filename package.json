@@ -10,7 +10,7 @@
   "author": "Âncora Consultoria",
   "license": "ISC",
   "build": {
-    "appId": "com.ancora.sistema",
+    "appId": "com.ancora.funil",
     "win": {
       "target": "nsis",
       "icon": "icon.png"

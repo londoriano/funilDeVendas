@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Funil de Vendas - Âncora</title>
-    <!-- CSS Local -->
     <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="lib/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
     
@@ -23,6 +22,25 @@
         .deals-container { min-height: 150px; padding-bottom: 20px; }
         .dashed-btn { border: 1px dashed #ccc; font-size: 0.8em; }
         .script-box { white-space: pre-wrap; font-size: 0.85em; background-color: #fdfdfe; border-left: 3px solid #0dcaf0; }
+
+        /* Modais elegantes */
+        .modal-header-danger { background: linear-gradient(135deg, #dc3545, #b02a37); color: #fff; }
+        .modal-header-danger .btn-close { filter: invert(1); }
+        .modal-header-warning { background: linear-gradient(135deg, #ffc107, #e0a800); color: #000; }
+        .modal-header-primary { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: #fff; }
+        .modal-header-primary .btn-close { filter: invert(1); }
+        .modal-header-success { background: linear-gradient(135deg, #198754, #146c43); color: #fff; }
+        .modal-header-success .btn-close { filter: invert(1); }
+        .modal-header-info { background: linear-gradient(135deg, #0dcaf0, #0aa2c0); color: #000; }
+
+        .modal-icon-confirm { font-size: 3rem; display: block; text-align: center; margin-bottom: 0.5rem; }
+        .modal-content { border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.18); border-radius: 12px; overflow: hidden; }
+        .modal-header { border-bottom: none; padding: 1.2rem 1.5rem; }
+        .modal-footer { border-top: 1px solid #dee2e6; }
+
+        /* Toast de sucesso/erro */
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; }
+        .toast { min-width: 280px; }
     </style>
 </head>
 <body>
@@ -72,21 +90,25 @@
     </div>
 </div>
 
+<!-- ================================================ -->
+<!-- MODAIS BOOTSTRAP ELEGANTES                       -->
+<!-- ================================================ -->
+
 <!-- Modal Negócio -->
 <div class="modal fade" id="dealModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="dealModalTitle">Negócio</h5>
+            <div class="modal-header modal-header-primary">
+                <h5 class="modal-title"><i class="bi bi-briefcase me-2"></i><span id="dealModalTitle">Negócio</span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <h6>Tarefas desta Fase:</h6>
-                <div id="deal-tasks" class="mb-3"></div>
-                <h6>Ações/Bifurcações:</h6>
+                <h6 class="text-muted text-uppercase fw-semibold mb-2" style="font-size:0.78em; letter-spacing:.08em;"><i class="bi bi-check2-square me-1"></i>Tarefas desta Fase</h6>
+                <div id="deal-tasks" class="mb-4"></div>
+                <h6 class="text-muted text-uppercase fw-semibold mb-2" style="font-size:0.78em; letter-spacing:.08em;"><i class="bi bi-bezier2 me-1"></i>Ações / Bifurcações</h6>
                 <div id="deal-branches"></div>
             </div>
-            <div class="modal-footer d-flex justify-content-between border-top-0 pt-0">
+            <div class="modal-footer d-flex justify-content-between">
                 <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteCurrentDeal()"><i class="bi bi-trash me-1"></i> Excluir Negócio</button>
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
             </div>
@@ -98,7 +120,7 @@
 <div class="modal fade" id="scriptAdminModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header modal-header-info">
                 <h5 class="modal-title"><i class="bi bi-file-text me-2"></i>Script / Observações da Tarefa</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -116,17 +138,239 @@
     </div>
 </div>
 
+<!-- Modal Senha Admin -->
+<div class="modal fade" id="adminPasswordModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header modal-header-warning">
+                <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>Acesso Restrito</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="cancelAdminLogin()"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-lock-fill modal-icon-confirm text-warning"></i>
+                <p class="text-muted mb-3">Digite a senha para acessar o painel de administração.</p>
+                <input type="password" id="admin-password-input" class="form-control text-center" placeholder="••••••••" onkeydown="if(event.key==='Enter') confirmAdminLogin()">
+                <div id="admin-password-error" class="text-danger mt-2 d-none"><i class="bi bi-exclamation-circle me-1"></i>Senha incorreta. Tente novamente.</div>
+            </div>
+            <div class="modal-footer justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelAdminLogin()">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="confirmAdminLogin()"><i class="bi bi-unlock me-1"></i>Entrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmação Genérica -->
+<div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header modal-header-danger">
+                <h5 class="modal-title" id="confirmModalTitle"><i class="bi bi-exclamation-triangle me-2"></i>Confirmar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-question-circle-fill modal-icon-confirm text-danger"></i>
+                <p id="confirmModalMessage" class="text-muted mb-0">Tem certeza?</p>
+            </div>
+            <div class="modal-footer justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary" id="confirmModalCancel" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmModalOk"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Prompt Genérico (entrada de texto) -->
+<div class="modal fade" id="promptModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header modal-header-primary">
+                <h5 class="modal-title" id="promptModalTitle"><i class="bi bi-pencil me-2"></i>Informação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="_promptResolve(null)"></button>
+            </div>
+            <div class="modal-body">
+                <p id="promptModalMessage" class="text-muted mb-2"></p>
+                <input type="text" id="promptModalInput" class="form-control" placeholder="">
+                <div id="promptModalError" class="text-danger mt-1 d-none" style="font-size:0.85em;"></div>
+            </div>
+            <div class="modal-footer justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="_promptResolve(null)">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="promptModalOk"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Seleção (opções com botões visuais) -->
+<div class="modal fade" id="selectModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header modal-header-primary">
+                <h5 class="modal-title" id="selectModalTitle"><i class="bi bi-ui-radios me-2"></i>Selecione uma opção</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="_selectResolve(null)"></button>
+            </div>
+            <div class="modal-body">
+                <p id="selectModalMessage" class="text-muted mb-3"></p>
+                <div id="selectModalOptions" class="d-grid gap-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal" onclick="_selectResolve(null)">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Alerta (info/sucesso/erro) -->
+<div class="modal fade" id="alertModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header" id="alertModalHeader">
+                <h5 class="modal-title" id="alertModalTitle">Aviso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i id="alertModalIcon" class="modal-icon-confirm"></i>
+                <p id="alertModalMessage" class="text-muted mb-0"></p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container">
+    <div id="appToast" class="toast align-items-center border-0 text-white" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="appToastBody"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
 <!-- JS Local -->
 <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
-<!-- Deixando o Chart.js engatilhado para uso futuro, se precisar -->
 <script src="lib/chartjs/chart.min.js"></script>
 
 <script>
-    // Estrutura de Dados
+    // =============================================
+    // UTILITÁRIOS DE MODAL (substituem alert/confirm/prompt nativos)
+    // =============================================
+
+    let _confirmResolve = null;
+    let _promptResolve = null;
+    let _selectResolve = null;
+
+    const _confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    const _promptModal  = new bootstrap.Modal(document.getElementById('promptModal'));
+    const _selectModal  = new bootstrap.Modal(document.getElementById('selectModal'));
+    const _alertModal   = new bootstrap.Modal(document.getElementById('alertModal'));
+    const _adminPassModal = new bootstrap.Modal(document.getElementById('adminPasswordModal'));
+    const _appToast     = new bootstrap.Toast(document.getElementById('appToast'), { delay: 3500 });
+
+    /** Mostra um toast de sucesso/erro no canto inferior direito */
+    function showToast(message, type = 'success') {
+        const el = document.getElementById('appToast');
+        const body = document.getElementById('appToastBody');
+        el.className = `toast align-items-center border-0 text-white bg-${type === 'success' ? 'success' : type === 'danger' ? 'danger' : 'secondary'}`;
+        body.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'x-circle' : 'info-circle'} me-2"></i>${message}`;
+        _appToast.show();
+    }
+
+    /** Modal de alerta (substitui alert()) */
+    function showAlert(message, type = 'warning', title = null) {
+        const header = document.getElementById('alertModalHeader');
+        const titleEl = document.getElementById('alertModalTitle');
+        const iconEl = document.getElementById('alertModalIcon');
+        const msgEl = document.getElementById('alertModalMessage');
+
+        const config = {
+            warning: { cls: 'modal-header-warning',  icon: 'bi-exclamation-triangle-fill text-warning', t: 'Atenção' },
+            danger:  { cls: 'modal-header-danger',    icon: 'bi-x-circle-fill text-danger',              t: 'Erro' },
+            success: { cls: 'modal-header-success',   icon: 'bi-check-circle-fill text-success',         t: 'Sucesso' },
+            info:    { cls: 'modal-header-info',      icon: 'bi-info-circle-fill text-info',             t: 'Informação' },
+        };
+        const c = config[type] || config.warning;
+        header.className = `modal-header ${c.cls}`;
+        if (c.cls.includes('danger') || c.cls.includes('success') || c.cls.includes('primary')) {
+            header.querySelector('.btn-close').style.filter = 'invert(1)';
+        } else {
+            header.querySelector('.btn-close').style.filter = '';
+        }
+        titleEl.innerHTML = title || c.t;
+        iconEl.className = `modal-icon-confirm bi ${c.icon}`;
+        msgEl.textContent = message;
+        _alertModal.show();
+    }
+
+    /** Modal de confirmação — retorna Promise<boolean> */
+    function showConfirm(message, title = 'Confirmar ação') {
+        return new Promise(resolve => {
+            _confirmResolve = resolve;
+            document.getElementById('confirmModalTitle').innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>${title}`;
+            document.getElementById('confirmModalMessage').textContent = message;
+            const okBtn = document.getElementById('confirmModalOk');
+            const newOk = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOk, okBtn);
+            newOk.addEventListener('click', () => { _confirmModal.hide(); resolve(true); });
+            document.getElementById('confirmModal').addEventListener('hidden.bs.modal', () => { resolve(false); }, { once: true });
+            _confirmModal.show();
+        });
+    }
+
+    /** Modal de entrada de texto — retorna Promise<string|null> */
+    function showPrompt(message, defaultValue = '', title = 'Digite abaixo', placeholder = '') {
+        return new Promise(resolve => {
+            _promptResolve = (val) => { _promptModal.hide(); resolve(val); };
+            document.getElementById('promptModalTitle').innerHTML = `<i class="bi bi-pencil me-2"></i>${title}`;
+            document.getElementById('promptModalMessage').textContent = message;
+            document.getElementById('promptModalError').classList.add('d-none');
+            const input = document.getElementById('promptModalInput');
+            input.value = defaultValue;
+            input.placeholder = placeholder;
+            const okBtn = document.getElementById('promptModalOk');
+            const newOk = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOk, okBtn);
+            newOk.addEventListener('click', () => {
+                const v = input.value.trim();
+                if (!v) { document.getElementById('promptModalError').textContent = 'Este campo é obrigatório.'; document.getElementById('promptModalError').classList.remove('d-none'); return; }
+                _promptResolve(v);
+            });
+            input.onkeydown = (e) => { if (e.key === 'Enter') newOk.click(); };
+            document.getElementById('promptModal').addEventListener('hidden.bs.modal', () => { resolve(null); }, { once: true });
+            _promptModal.show();
+            setTimeout(() => input.focus(), 400);
+        });
+    }
+
+    /** Modal de seleção entre opções — retorna Promise<value|null> */
+    function showSelect(message, options, title = 'Selecione') {
+        return new Promise(resolve => {
+            _selectResolve = (val) => { _selectModal.hide(); resolve(val); };
+            document.getElementById('selectModalTitle').innerHTML = `<i class="bi bi-ui-radios me-2"></i>${title}`;
+            document.getElementById('selectModalMessage').textContent = message;
+            const container = document.getElementById('selectModalOptions');
+            container.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = `btn btn-outline-primary text-start`;
+                btn.innerHTML = `<i class="bi bi-arrow-right-circle me-2"></i>${opt.label}`;
+                btn.onclick = () => _selectResolve(opt.value);
+                container.appendChild(btn);
+            });
+            document.getElementById('selectModal').addEventListener('hidden.bs.modal', () => { resolve(null); }, { once: true });
+            _selectModal.show();
+        });
+    }
+
+    // =============================================
+    // ESTRUTURA DE DADOS
+    // =============================================
     let db = JSON.parse(localStorage.getItem('funnelDB')) || {
         userName: "João Silva",
-        phases: [], 
-        deals: [] 
+        phases: [],
+        deals: []
     };
 
     let currentMode = 'user';
@@ -141,19 +385,44 @@
 
     function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
 
-    function toggleMode(mode) {
-        if (mode === 'admin') {
-            const pass = prompt("Digite a senha do Admin:");
-            if (pass !== "Nimbus27@9") {
-                alert("Senha incorreta.");
-                return;
-            }
+    // =============================================
+    // TOGGLE MODO (usa modal de senha)
+    // =============================================
+    function cancelAdminLogin() {
+        document.getElementById('admin-password-input').value = '';
+        document.getElementById('admin-password-error').classList.add('d-none');
+    }
+
+    function confirmAdminLogin() {
+        const pass = document.getElementById('admin-password-input').value;
+        if (pass !== "Nimbus27@9") {
+            document.getElementById('admin-password-error').classList.remove('d-none');
+            document.getElementById('admin-password-input').value = '';
+            document.getElementById('admin-password-input').focus();
+            return;
         }
-        currentMode = mode;
+        document.getElementById('admin-password-error').classList.add('d-none');
+        document.getElementById('admin-password-input').value = '';
+        _adminPassModal.hide();
+        currentMode = 'admin';
         render();
     }
 
-    // --- LÓGICA DE DRAG AND DROP ---
+    function toggleMode(mode) {
+        if (mode === 'admin') {
+            document.getElementById('admin-password-error').classList.add('d-none');
+            document.getElementById('admin-password-input').value = '';
+            _adminPassModal.show();
+            setTimeout(() => document.getElementById('admin-password-input').focus(), 400);
+        } else {
+            currentMode = 'user';
+            render();
+        }
+    }
+
+    // =============================================
+    // DRAG AND DROP
+    // =============================================
     function allowDrop(ev) { ev.preventDefault(); }
 
     function dragPhase(ev, phaseId) { ev.dataTransfer.setData("text/phaseId", phaseId); }
@@ -162,7 +431,7 @@
         const draggedId = ev.dataTransfer.getData("text/phaseId");
         if (!draggedId || draggedId === targetPhaseId) return;
         const fromIndex = db.phases.findIndex(p => p.id === draggedId);
-        const toIndex = db.phases.findIndex(p => p.id === targetPhaseId);
+        const toIndex   = db.phases.findIndex(p => p.id === targetPhaseId);
         const [draggedPhase] = db.phases.splice(fromIndex, 1);
         db.phases.splice(toIndex, 0, draggedPhase);
         saveDB();
@@ -174,14 +443,13 @@
         ev.stopPropagation();
     }
     function dropTask(ev, targetPhaseId, targetTaskId) {
-        ev.preventDefault();
-        ev.stopPropagation();
+        ev.preventDefault(); ev.stopPropagation();
         const srcPhaseId = ev.dataTransfer.getData("text/srcPhaseId");
-        const taskId = ev.dataTransfer.getData("text/taskId");
-        if (srcPhaseId !== targetPhaseId) return; 
+        const taskId     = ev.dataTransfer.getData("text/taskId");
+        if (srcPhaseId !== targetPhaseId) return;
         const phase = db.phases.find(p => p.id === targetPhaseId);
         const fromIndex = phase.tasks.findIndex(t => t.id === taskId);
-        const toIndex = phase.tasks.findIndex(t => t.id === targetTaskId);
+        const toIndex   = phase.tasks.findIndex(t => t.id === targetTaskId);
         const [draggedTask] = phase.tasks.splice(fromIndex, 1);
         phase.tasks.splice(toIndex, 0, draggedTask);
         saveDB();
@@ -194,16 +462,15 @@
         ev.stopPropagation();
     }
     function dropBranchTask(ev, targetPhaseId, targetBranchId, targetTaskId) {
-        ev.preventDefault();
-        ev.stopPropagation();
+        ev.preventDefault(); ev.stopPropagation();
         const srcPhaseId = ev.dataTransfer.getData("text/srcPhaseId");
-        const branchId = ev.dataTransfer.getData("text/branchId");
-        const taskId = ev.dataTransfer.getData("text/taskId");
-        if (srcPhaseId !== targetPhaseId || branchId !== targetBranchId) return; 
-        const phase = db.phases.find(p => p.id === targetPhaseId);
+        const branchId   = ev.dataTransfer.getData("text/branchId");
+        const taskId     = ev.dataTransfer.getData("text/taskId");
+        if (srcPhaseId !== targetPhaseId || branchId !== targetBranchId) return;
+        const phase  = db.phases.find(p => p.id === targetPhaseId);
         const branch = phase.branches.find(b => b.id === targetBranchId);
         const fromIndex = branch.newTasks.findIndex(t => t.id === taskId);
-        const toIndex = branch.newTasks.findIndex(t => t.id === targetTaskId);
+        const toIndex   = branch.newTasks.findIndex(t => t.id === targetTaskId);
         const [draggedTask] = branch.newTasks.splice(fromIndex, 1);
         branch.newTasks.splice(toIndex, 0, draggedTask);
         saveDB();
@@ -214,25 +481,25 @@
         ev.stopPropagation();
     }
     function dropDeal(ev, targetPhaseId) {
-        ev.preventDefault();
-        ev.stopPropagation();
+        ev.preventDefault(); ev.stopPropagation();
         const dealId = ev.dataTransfer.getData("text/dealId");
         if (!dealId) return;
         const deal = db.deals.find(d => d.id === dealId);
         if (deal && deal.phaseId !== targetPhaseId) {
             deal.phaseId = targetPhaseId;
-            deal.completedTasks = []; 
-            deal.customTasks = []; 
+            deal.completedTasks = [];
+            deal.customTasks = [];
             saveDB();
         }
     }
 
-    // --- SCRIPTS MODO ADMIN ---
+    // =============================================
+    // SCRIPTS MODO ADMIN
+    // =============================================
     function openScriptEditor(phaseId, taskId, branchId = '') {
         document.getElementById('script-target-phase').value = phaseId;
-        document.getElementById('script-target-task').value = taskId;
+        document.getElementById('script-target-task').value  = taskId;
         document.getElementById('script-target-branch').value = branchId;
-
         const phase = db.phases.find(p => p.id === phaseId);
         let task;
         if (branchId) {
@@ -241,17 +508,15 @@
         } else {
             task = phase.tasks.find(t => t.id === taskId);
         }
-
         document.getElementById('script-content').value = task.script || '';
         scriptAdminModal.show();
     }
 
     function saveScript() {
-        const phaseId = document.getElementById('script-target-phase').value;
-        const taskId = document.getElementById('script-target-task').value;
+        const phaseId  = document.getElementById('script-target-phase').value;
+        const taskId   = document.getElementById('script-target-task').value;
         const branchId = document.getElementById('script-target-branch').value;
-        const content = document.getElementById('script-content').value;
-
+        const content  = document.getElementById('script-content').value;
         const phase = db.phases.find(p => p.id === phaseId);
         let task;
         if (branchId) {
@@ -260,35 +525,42 @@
         } else {
             task = phase.tasks.find(t => t.id === taskId);
         }
-
         task.script = content.trim();
         saveDB();
         scriptAdminModal.hide();
+        showToast('Script salvo com sucesso!', 'success');
     }
 
-    // --- MODO ADMIN ---
+    // =============================================
+    // MODO ADMIN — FASES
+    // =============================================
     function addPhase() {
         const name = document.getElementById('new-phase-name').value.trim();
         if (!name) return;
         db.phases.push({ id: generateId(), name, tasks: [], branches: [] });
         document.getElementById('new-phase-name').value = '';
         saveDB();
+        showToast(`Fase "${name}" adicionada!`, 'success');
     }
 
-    function deletePhase(id) {
-        if(confirm("Excluir esta fase e todos os negócios nela?")) {
+    async function deletePhase(id) {
+        const phase = db.phases.find(p => p.id === id);
+        const ok = await showConfirm(`Excluir a fase "${phase.name}" e todos os negócios nela? Esta ação não pode ser desfeita.`, 'Excluir Fase');
+        if (ok) {
             db.phases = db.phases.filter(p => p.id !== id);
-            db.deals = db.deals.filter(d => d.phaseId !== id);
-            db.phases.forEach(p => p.branches = p.branches.filter(b => b.type !== 'move' && b.type !== 'move_and_add_tasks' || b.targetId !== id));
+            db.deals  = db.deals.filter(d => d.phaseId !== id);
+            db.phases.forEach(p => p.branches = p.branches.filter(b => (b.type !== 'move' && b.type !== 'move_and_add_tasks') || b.targetId !== id));
             saveDB();
+            showToast('Fase excluída.', 'danger');
         }
     }
 
-    function addTask(phaseId) {
-        const task = prompt("Descrição da Tarefa Base:");
+    async function addTask(phaseId) {
+        const task = await showPrompt('Descrição da Tarefa Base:', '', 'Nova Tarefa', 'Ex: Enviar proposta');
         if (task) {
             db.phases.find(p => p.id === phaseId).tasks.push({ id: generateId(), name: task });
             saveDB();
+            showToast('Tarefa adicionada!', 'success');
         }
     }
 
@@ -298,37 +570,47 @@
         saveDB();
     }
 
-    function addBranch(phaseId) {
-        const name = prompt("Nome da bifurcação (ex: Cliente Respondeu):");
+    async function addBranch(phaseId) {
+        const name = await showPrompt('Nome da bifurcação:', '', 'Nova Bifurcação', 'Ex: Cliente Respondeu');
         if (!name) return;
-        
-        const actionType = prompt("Ação da bifurcação:\n1 - Apenas Mover de fase\n2 - Apenas Adicionar Tarefas na fase atual\n3 - Mover de fase E Adicionar Tarefas");
-        
-        if (actionType === '1' || actionType === '3') {
-            if (db.phases.length < 2) return alert("Crie pelo menos 2 fases primeiro.");
-            let options = db.phases.filter(p => p.id !== phaseId).map((p, i) => `${i+1} - ${p.name}`).join('\n');
-            const targetIndex = prompt(`Para qual fase essa bifurcação leva?\n${options}`);
-            const targetPhase = db.phases.filter(p => p.id !== phaseId)[parseInt(targetIndex) - 1];
 
-            if (targetPhase) {
-                if (actionType === '1') {
-                    db.phases.find(p => p.id === phaseId).branches.push({ id: generateId(), type: 'move', name, targetId: targetPhase.id });
+        const actionType = await showSelect('Qual ação esta bifurcação executa?', [
+            { label: 'Apenas Mover de fase', value: '1' },
+            { label: 'Apenas Adicionar Tarefas na fase atual', value: '2' },
+            { label: 'Mover de fase E Adicionar Tarefas', value: '3' },
+        ], 'Ação da Bifurcação');
+        if (!actionType) return;
+
+        if (actionType === '1' || actionType === '3') {
+            if (db.phases.length < 2) { showAlert('Crie pelo menos 2 fases primeiro.', 'warning'); return; }
+            const otherPhases = db.phases.filter(p => p.id !== phaseId);
+            const selectedPhaseId = await showSelect('Para qual fase essa bifurcação leva?',
+                otherPhases.map(p => ({ label: p.name, value: p.id })),
+                'Fase de Destino'
+            );
+            if (!selectedPhaseId) return;
+            const targetPhase = db.phases.find(p => p.id === selectedPhaseId);
+
+            if (actionType === '1') {
+                db.phases.find(p => p.id === phaseId).branches.push({ id: generateId(), type: 'move', name, targetId: targetPhase.id });
+                saveDB();
+                showToast('Bifurcação criada!', 'success');
+            } else {
+                const tasksStr = await showPrompt('Digite as tarefas separadas por vírgula:', '', 'Tarefas da Bifurcação', 'Ex: Ligar, Enviar email, Agendar reunião');
+                if (tasksStr) {
+                    const newTasks = tasksStr.split(',').map(t => ({ id: generateId(), name: t.trim(), script: "" }));
+                    db.phases.find(p => p.id === phaseId).branches.push({ id: generateId(), type: 'move_and_add_tasks', name, targetId: targetPhase.id, newTasks });
                     saveDB();
-                } else if (actionType === '3') {
-                    const tasksStr = prompt("Digite as tarefas separadas por vírgula para a nova fase:");
-                    if (tasksStr) {
-                        const newTasks = tasksStr.split(',').map(t => ({ id: generateId(), name: t.trim(), script: "" }));
-                        db.phases.find(p => p.id === phaseId).branches.push({ id: generateId(), type: 'move_and_add_tasks', name, targetId: targetPhase.id, newTasks });
-                        saveDB();
-                    }
+                    showToast('Bifurcação criada!', 'success');
                 }
             }
         } else if (actionType === '2') {
-            const tasksStr = prompt("Digite as tarefas separadas por vírgula:");
+            const tasksStr = await showPrompt('Digite as tarefas separadas por vírgula:', '', 'Tarefas da Bifurcação', 'Ex: Ligar, Enviar email, Agendar reunião');
             if (tasksStr) {
                 const newTasks = tasksStr.split(',').map(t => ({ id: generateId(), name: t.trim(), script: "" }));
                 db.phases.find(p => p.id === phaseId).branches.push({ id: generateId(), type: 'add_tasks', name, newTasks });
                 saveDB();
+                showToast('Bifurcação criada!', 'success');
             }
         }
     }
@@ -339,48 +621,54 @@
         saveDB();
     }
 
-    function editBranchTask(phaseId, branchId, taskId) {
-        const phase = db.phases.find(p => p.id === phaseId);
+    async function editBranchTask(phaseId, branchId, taskId) {
+        const phase  = db.phases.find(p => p.id === phaseId);
         const branch = phase.branches.find(b => b.id === branchId);
-        const task = branch.newTasks.find(t => t.id === taskId);
-        const newName = prompt("Editar nome da tarefa da bifurcação:", task.name);
+        const task   = branch.newTasks.find(t => t.id === taskId);
+        const newName = await showPrompt('Editar nome da tarefa:', task.name, 'Editar Tarefa');
         if (newName) {
             task.name = newName.trim();
             saveDB();
+            showToast('Tarefa atualizada!', 'success');
         }
     }
 
-    function deleteBranchTask(phaseId, branchId, taskId) {
-        if (confirm("Remover esta tarefa desta bifurcação?")) {
-            const phase = db.phases.find(p => p.id === phaseId);
+    async function deleteBranchTask(phaseId, branchId, taskId) {
+        const ok = await showConfirm('Remover esta tarefa desta bifurcação?', 'Remover Tarefa');
+        if (ok) {
+            const phase  = db.phases.find(p => p.id === phaseId);
             const branch = phase.branches.find(b => b.id === branchId);
             branch.newTasks = branch.newTasks.filter(t => t.id !== taskId);
             saveDB();
         }
     }
 
-    function addBranchTask(phaseId, branchId) {
-        const taskName = prompt("Descrição da nova tarefa para esta bifurcação:");
+    async function addBranchTask(phaseId, branchId) {
+        const taskName = await showPrompt('Descrição da nova tarefa para esta bifurcação:', '', 'Nova Tarefa', 'Ex: Enviar contrato');
         if (taskName) {
-            const phase = db.phases.find(p => p.id === phaseId);
+            const phase  = db.phases.find(p => p.id === phaseId);
             const branch = phase.branches.find(b => b.id === branchId);
             branch.newTasks.push({ id: generateId(), name: taskName.trim(), script: "" });
             saveDB();
+            showToast('Tarefa adicionada!', 'success');
         }
     }
 
-    // --- MODO USUÁRIO ---
-    function editUserName() {
-        const name = prompt("Qual o seu nome?", db.userName);
+    // =============================================
+    // MODO USUÁRIO
+    // =============================================
+    async function editUserName() {
+        const name = await showPrompt('Qual o seu nome?', db.userName, 'Editar Nome');
         if (name) { db.userName = name; saveDB(); }
     }
 
-    function addDeal() {
-        if (db.phases.length === 0) return alert("Peça ao Admin para criar fases primeiro.");
-        const name = prompt("Nome do Novo Negócio:");
+    async function addDeal() {
+        if (db.phases.length === 0) { showAlert('Peça ao Admin para criar as fases primeiro.', 'warning'); return; }
+        const name = await showPrompt('Nome do Novo Negócio:', '', 'Novo Negócio', 'Ex: Empresa XYZ');
         if (name) {
             db.deals.push({ id: generateId(), name, phaseId: db.phases[0].id, completedTasks: [], customTasks: [] });
             saveDB();
+            showToast(`Negócio "${name}" criado!`, 'success');
         }
     }
 
@@ -390,19 +678,19 @@
 
     function openDeal(dealId) {
         currentDealId = dealId;
-        const deal = db.deals.find(d => d.id === dealId);
+        const deal  = db.deals.find(d => d.id === dealId);
         const phase = db.phases.find(p => p.id === deal.phaseId);
-        
+
         document.getElementById('dealModalTitle').innerText = deal.name;
-        
+
         let allTasks = [...phase.tasks, ...(deal.customTasks || [])];
-        let tasksHtml = allTasks.length ? '' : '<p class="text-muted">Nenhuma tarefa.</p>';
-        
+        let tasksHtml = allTasks.length ? '' : '<p class="text-muted fst-italic">Nenhuma tarefa configurada.</p>';
+
         allTasks.forEach(t => {
-            const checked = deal.completedTasks.includes(t.id) ? 'checked' : '';
-            const isCustom = deal.customTasks && deal.customTasks.find(ct => ct.id === t.id);
+            const checked    = deal.completedTasks.includes(t.id) ? 'checked' : '';
+            const isCustom   = deal.customTasks && deal.customTasks.find(ct => ct.id === t.id);
             const labelClass = isCustom ? 'custom-task' : '';
-            
+
             let scriptHtml = '';
             if (t.script) {
                 scriptHtml = `
@@ -415,19 +703,18 @@
             tasksHtml += `<div class="${t.script ? 'mb-1' : 'mb-2'}">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="task_${t.id}" ${checked} onchange="toggleTask('${deal.id}', '${t.id}')">
-                    <label class="form-check-label ${labelClass}" for="task_${t.id}">${t.name} ${isCustom ? '(Extra)' : ''}</label>
+                    <label class="form-check-label ${labelClass}" for="task_${t.id}">${t.name} ${isCustom ? '<span class="badge bg-primary ms-1" style="font-size:0.7em;">Extra</span>' : ''}</label>
                 </div>
                 ${scriptHtml}
             </div>`;
         });
         document.getElementById('deal-tasks').innerHTML = tasksHtml;
 
-        let branchesHtml = phase.branches.length ? '' : '<p class="text-muted">Sem bifurcações configuradas.</p>';
+        let branchesHtml = phase.branches.length ? '' : '<p class="text-muted fst-italic">Sem bifurcações configuradas.</p>';
         phase.branches.forEach(b => {
             let btnClass = 'btn-outline-primary';
             if (b.type === 'add_tasks') btnClass = 'btn-outline-warning';
             if (b.type === 'move_and_add_tasks') btnClass = 'btn-outline-success';
-            
             branchesHtml += `<button class="btn ${btnClass} btn-sm me-2 mb-2" onclick="handleBranch('${deal.id}', '${b.id}')">${b.name}</button>`;
         });
         document.getElementById('deal-branches').innerHTML = branchesHtml;
@@ -446,14 +733,14 @@
     }
 
     function handleBranch(dealId, branchId) {
-        const deal = db.deals.find(d => d.id === dealId);
-        const phase = db.phases.find(p => p.id === deal.phaseId);
+        const deal   = db.deals.find(d => d.id === dealId);
+        const phase  = db.phases.find(p => p.id === deal.phaseId);
         const branch = phase.branches.find(b => b.id === branchId);
 
         if (branch.type === 'move') {
             deal.phaseId = branch.targetId;
             deal.completedTasks = [];
-            deal.customTasks = []; 
+            deal.customTasks = [];
             saveDB();
             dealModal.hide();
         } else if (branch.type === 'add_tasks') {
@@ -464,11 +751,11 @@
                 }
             });
             saveDB();
-            openDeal(dealId); 
+            openDeal(dealId);
         } else if (branch.type === 'move_and_add_tasks') {
             deal.phaseId = branch.targetId;
             deal.completedTasks = [];
-            deal.customTasks = []; 
+            deal.customTasks = [];
             branch.newTasks.forEach(newTask => {
                 deal.customTasks.push({ id: generateId(), name: newTask.name, originalId: newTask.id, script: newTask.script });
             });
@@ -477,21 +764,23 @@
         }
     }
 
-    function deleteCurrentDeal() {
-        if (currentDealId && confirm("Tem certeza que deseja excluir este negócio? Esta ação não pode ser desfeita.")) {
+    async function deleteCurrentDeal() {
+        if (!currentDealId) return;
+        const deal = db.deals.find(d => d.id === currentDealId);
+        const ok = await showConfirm(`Excluir o negócio "${deal ? deal.name : ''}"? Esta ação não pode ser desfeita.`, 'Excluir Negócio');
+        if (ok) {
             db.deals = db.deals.filter(d => d.id !== currentDealId);
             saveDB();
             dealModal.hide();
+            showToast('Negócio excluído.', 'danger');
         }
     }
 
-    // --- JSON EXPORT/IMPORT ---
+    // =============================================
+    // JSON EXPORT / IMPORT
+    // =============================================
     function exportJSON() {
-        const exportData = {
-            userName: db.userName,
-            phases: db.phases,
-            deals: [] 
-        };
+        const exportData = { userName: db.userName, phases: db.phases, deals: [] };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData));
         const anchor = document.createElement('a');
         anchor.href = dataStr;
@@ -506,23 +795,24 @@
         reader.onload = function(e) {
             try {
                 const importedData = JSON.parse(e.target.result);
-                db.phases = importedData.phases || [];
-                db.userName = importedData.userName || db.userName;
-                db.deals = importedData.deals || []; 
+                db.phases   = importedData.phases   || [];
+                db.userName = importedData.userName  || db.userName;
+                db.deals    = importedData.deals     || [];
                 saveDB();
-                alert("Estrutura restaurada com sucesso!");
+                showToast('Estrutura restaurada com sucesso!', 'success');
             } catch (err) {
-                alert("Arquivo JSON inválido.");
+                showAlert('Arquivo JSON inválido. Verifique o conteúdo e tente novamente.', 'danger', 'Erro ao Importar');
             }
         };
         reader.readAsText(file);
     }
 
-    // --- RENDER ---
+    // =============================================
+    // RENDER
+    // =============================================
     function render() {
-        document.getElementById('user-panel').style.display = currentMode === 'user' ? 'block' : 'none';
+        document.getElementById('user-panel').style.display  = currentMode === 'user'  ? 'block' : 'none';
         document.getElementById('admin-panel').style.display = currentMode === 'admin' ? 'block' : 'none';
-        
         document.getElementById('display-user-name').innerText = db.userName;
 
         if (currentMode === 'admin') {
@@ -533,17 +823,16 @@
                         <h4>${i+1}. ${p.name} <span class="fs-6 text-muted">(Arraste para mover)</span></h4>
                         <button class="btn btn-danger btn-sm" onclick="deletePhase('${p.id}')"><i class="bi bi-trash"></i> Excluir Fase</button>
                     </div>
-                    
                     <div class="row mt-3" draggable="false">
                         <div class="col-md-6" ondragover="allowDrop(event)">
                             <h6>Tarefas Base <button class="btn btn-sm btn-outline-secondary ms-2" onclick="addTask('${p.id}')"><i class="bi bi-plus-lg"></i> Tarefa</button></h6>
                             <ul class="p-0">${p.tasks.map(t => {
                                 const hasScript = t.script ? 'btn-info text-white' : 'btn-outline-info';
                                 return `<li class="draggable-task" draggable="true" ondragstart="dragTask(event, '${p.id}', '${t.id}')" ondragover="allowDrop(event)" ondrop="dropTask(event, '${p.id}', '${t.id}')">
-                                    <i class="bi bi-grip-vertical text-muted"></i> ${t.name} 
+                                    <i class="bi bi-grip-vertical text-muted"></i> ${t.name}
                                     <div class="float-end">
                                         <button class="btn ${hasScript} btn-xs me-1" title="Adicionar/Editar Script" onclick="openScriptEditor('${p.id}', '${t.id}')"><i class="bi bi-file-text"></i></button>
-                                        <a href="#" class="text-danger" onclick="deleteTask('${p.id}', '${t.id}')"><i class="bi bi-x-lg"></i></a>
+                                        <a href="#" class="text-danger" onclick="deleteTask('${p.id}', '${t.id}'); event.preventDefault()"><i class="bi bi-x-lg"></i></a>
                                     </div>
                                 </li>`;
                             }).join('')}
@@ -554,7 +843,7 @@
                             <ul class="ps-3">${p.branches.map(b => {
                                 if (b.type === 'move') {
                                     const target = db.phases.find(ph => ph.id === b.targetId);
-                                    return `<li class="mb-2"><strong>${b.name}</strong> ➔ Mover para: <em>${target ? target.name : '???'}</em> <a href="#" class="text-danger ms-2" onclick="deleteBranch('${p.id}', '${b.id}')"><i class="bi bi-x-lg"></i></a></li>`;
+                                    return `<li class="mb-2"><strong>${b.name}</strong> ➔ Mover para: <em>${target ? target.name : '???'}</em> <a href="#" class="text-danger ms-2" onclick="deleteBranch('${p.id}', '${b.id}'); event.preventDefault()"><i class="bi bi-x-lg"></i></a></li>`;
                                 } else {
                                     let tasksListHtml = '<div class="mt-1">';
                                     b.newTasks.forEach(bt => {
@@ -571,11 +860,9 @@
                                     });
                                     tasksListHtml += `<button class="btn btn-light btn-sm dashed-btn w-100 mt-1" onclick="addBranchTask('${p.id}', '${b.id}')"><i class="bi bi-plus-lg me-1"></i> Adicionar tarefa</button>`;
                                     tasksListHtml += '</div>';
-
                                     let title = b.type === 'add_tasks' ? 'Adiciona tarefas' : `Mover para: <em>${db.phases.find(ph => ph.id === b.targetId)?.name || '???'}</em> + Tarefas`;
-
                                     return `<li class="mb-3">
-                                        <strong>${b.name}</strong> ➔ ${title} <a href="#" class="text-danger ms-2" onclick="deleteBranch('${p.id}', '${b.id}')"><i class="bi bi-x-lg"></i></a>
+                                        <strong>${b.name}</strong> ➔ ${title} <a href="#" class="text-danger ms-2" onclick="deleteBranch('${p.id}', '${b.id}'); event.preventDefault()"><i class="bi bi-x-lg"></i></a>
                                         ${tasksListHtml}
                                     </li>`;
                                 }
