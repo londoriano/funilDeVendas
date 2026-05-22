@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funil de Vendas - Âncora</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .phase-card { background: #fff; border-top: 4px solid #0d6efd; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .phase-card.draggable { cursor: move; }
+        .deal-card { background: #e9ecef; padding: 10px; margin-bottom: 10px; border-radius: 5px; cursor: grab; border-left: 3px solid #198754; }
+        .deal-card:active { cursor: grabbing; }
+        .deal-card:hover { background: #dee2e6; }
+        #admin-panel { display: none; }
+        .custom-task { color: #0d6efd; font-style: italic; }
+        .draggable-task { cursor: move; background: #f1f3f5; padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; list-style-type: none; border: 1px dashed #ced4da; }
+        .bifurcation-task-item { background: #fff3cd; padding: 3px 6px; margin-bottom: 3px; border-radius: 4px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center; cursor: move; }
+        .btn-xs { padding: 1px 5px; font-size: 0.75em; }
+        .deals-container { min-height: 150px; padding-bottom: 20px; }
+        .dashed-btn { border: 1px dashed #ccc; font-size: 0.8em; }
+        .script-box { white-space: pre-wrap; font-size: 0.85em; background-color: #fdfdfe; border-left: 3px solid #0dcaf0; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Funil de Vendas</a>
+        <div>
+            <button class="btn btn-outline-light btn-sm me-2" onclick="toggleMode('user')" id="btn-user-mode">Modo Usuário</button>
+            <button class="btn btn-outline-warning btn-sm" onclick="toggleMode('admin')" id="btn-admin-mode">Modo Admin</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <!-- MODO USUÁRIO -->
+    <div id="user-panel">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 onclick="editUserName()" style="cursor:pointer;" title="Clique para editar" id="display-user-name">Usuário</h2>
+            <button class="btn btn-success" onclick="addDeal()">+ Novo Negócio</button>
+        </div>
+        <div class="row" id="funnel-board"></div>
+    </div>
+
+    <!-- MODO ADMIN -->
+    <div id="admin-panel">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Administração do Funil <small class="text-muted fs-6">(Arraste fases e tarefas para reordenar)</small></h2>
+            <div>
+                <button class="btn btn-info text-white" onclick="exportJSON()">📥 Baixar JSON (Somente Estrutura)</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📤 Restaurar JSON</button>
+                <input type="file" id="import-file" style="display:none" accept=".json" onchange="importJSON(event)">
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Nova Fase</h5>
+                <div class="input-group">
+                    <input type="text" id="new-phase-name" class="form-control" placeholder="Nome da fase (ex: Entrada)">
+                    <button class="btn btn-primary" onclick="addPhase()">Adicionar Fase</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-phases-list"></div>
+    </div>
+</div>
+
+<!-- Modal Negócio -->
+<div class="modal fade" id="dealModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dealModalTitle">Negócio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Tarefas desta Fase:</h6>
+                <div id="deal-tasks" class="mb-3"></div>
+                <h6>Ações/Bifurcações:</h6>
+                <div id="deal-branches"></div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between border-top-0 pt-0">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteCurrentDeal()">🗑️ Excluir Negócio</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editor de Script (Admin) -->
+<div class="modal fade" id="scriptAdminModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Script / Observações da Tarefa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="script-target-phase">
+                <input type="hidden" id="script-target-branch">
+                <input type="hidden" id="script-target-task">
+                <textarea id="script-content" class="form-control" rows="10" placeholder="Cole aqui o texto a ser lido ou as instruções de execução para esta tarefa..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveScript()">Salvar Script</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Estrutura de Dados
+    let db = JSON.parse(localStorage.getItem('funnelDB')) || {
+        userName: "João Silva",
+        phases: [], 
+        deals: [] 
+    };
+
+    let currentMode = 'user';
+    let currentDealId = null;
+    const dealModal = new bootstrap.Modal(document.getElementById('dealModal'));
+    const scriptAdminModal = new bootstrap.Modal(document.getElementById('scriptAdminModal'));
+
+    function saveDB() {
+        localStorage.setItem('funnelDB', JSON.stringify(db));
+        render();
+    }
+
+    function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
+
+    function toggleMode(mode) {
+        if (mode === 'admin') {
+            const pass = prompt("Digite a senha do Admin:");
+            if (pass !== "Nimbus27@9") {
+                alert("Senha incorreta.");
+                return;
+            }
+        }
+        currentMode = mode;
+        render();
+    }
+
+    // --- LÓGICA DE DRAG AND DROP ---
+    function allowDrop(ev) { ev.preventDefault(); }
+
+    function dragPhase(ev, phaseId) { ev.dataTransfer.setData("text/phaseId", phaseId); }
+    function dropPhase(ev, targetPhaseId) {
+        ev.preventDefault();
+        const draggedId = ev.dataTransfer.getData("text/phaseId");
+        if (!draggedId || draggedId === targetPhaseId) return;
+        const fromIndex = db.phases.findIndex(p => p.id === draggedId);
+        const toIndex = db.phases.findIndex(p => p.id === targetPhaseId);
+        const [draggedPhase] = db.phases.splice(fromIndex, 1);
+        db.phases.splice(toIndex, 0, draggedPhase);
+        saveDB();
+    }
+
+    function dragTask(ev, phaseId, taskId) {
+        ev.dataTransfer.setData("text/srcPhaseId", phaseId);
+        ev.dataTransfer.setData("text/taskId", taskId);
+        ev.stopPropagation();
+    }
+    function dropTask(ev, targetPhaseId, targetTaskId) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const srcPhaseId = ev.dataTransfer.getData("text/srcPhaseId");
+        const taskId = ev.dataTransfer.getData("text/taskId");
+        if (srcPhaseId !== targetPhaseId) return; 
+        const phase = db.phases.find(p => p.id === targetPhaseId);
+        const fromIndex = phase.tasks.findIndex(t => t.id === taskId);
+        const toIndex = phase.tasks.findIndex(t => t.id === targetTaskId);
+        const [draggedTask] = phase.tasks.splice(fromIndex, 1);
+        phase.tasks.splice(toIndex, 0, draggedTask);
+        saveDB();
+    }
+
+    function dragBranchTask(ev, phaseId, branchId, taskId) {
+        ev.dataTransfer.setData("text/srcPhaseId", phaseId);
+        ev.dataTransfer.setData("text/branchId", branchId);
+        ev.dataTransfer.setData("text/taskId", taskId);
+        ev.stopPropagation();
+    }
+    function dropBranchTask(ev, targetPhaseId, targetBranchId, targetTaskId) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const srcPhaseId = ev.dataTransfer.getData("text/srcPhaseId");
+        const branchId = ev.dataTransfer.getData("text/branchId");
+        const taskId = ev.dataTransfer.getData("text/taskId");
+        if (srcPhaseId !== targetPhaseId || branchId !== targetBranchId) return; 
+        const phase = db.phases.find(p => p.id === targetPhaseId);
+        const branch = phase.branches.find(b => b.id === targetBranchId);
+        const fromIndex = branch.newTasks.findIndex(t => t.id === taskId);
+        const toIndex = branch.newTasks.findIndex(t => t.id === targetTaskId);
+        const [draggedTask] = branch.newTasks.splice(fromIndex, 1);
+        branch.newTasks.splice(toIndex, 0, draggedTask);
+        saveDB();
+    }
+
+    function dragDeal(ev, dealId) {
+        ev.dataTransfer.setData("text/dealId", dealId);
+        ev.stopPropagation();
+    }
+    function dropDeal(ev, targetPhaseId) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const dealId = ev.dataTransfer.getData("text/dealId");
+        if (!dealId) return;
+        const deal = db.deals.find(d => d.id === dealId);
+        if (deal && deal.phaseId !== targetPhaseId) {
+            deal.phaseId = targetPhaseId;
+            deal.completedTasks = []; 
+            deal.customTasks = []; 
+            saveDB();
+        }
+    }
+
+    // --- SCRIPTS MODO ADMIN ---
+    function openScriptEditor(phaseId, taskId, branchId = '') {
+        document.getElementById('script-target-phase').value = phaseId;
+        document.getElementById('script-target-task').value = taskId;
+        document.getElementById('script-target-branch').value = branchId;
+
+        const phase = db.phases.find(p => p.id === phaseId);
+        let task;
+        if (branchId) {
+            const branch = phase.branches.find(b => b.id === branchId);
+            task = branch.newTasks.find(t => t.id === taskId);
+        } else {
+            task = phase.tasks.find(t => t.id === taskId);
+        }
+
+        document.getElementById('script-content').value = task.script || '';
+        scriptAdminModal.show();
+    }
+
+    function saveScript() {
+        const phaseId = document.getElementById('script-target-phase').value;
+        const taskId = document.getElementById('script-target-task').value;
+        const branchId = document.getElementById('script-target-branch').value;
+        const content = document.getElementById('script-content').value;
+
+        const phase = db.phases.find(p => p.id === phaseId);
+        let task;
+        if (branchId) {
+            const branch = phase.branches.find(b => b.id === branchId);
+            task = branch.newTasks.find(t => t.id === taskId);
+        } else {
+            task = phase.tasks.find(t => t.id === taskId);
+        }
+
+        task.script = content.trim();
+        saveDB();
+        scriptAdminModal.hide();
+    }
+
+    // --- MODO ADMIN ---
+    function addPhase() {
+        const name = document.getElementById('new-phase-name').value.trim();
+        if (!name) return;
+        db.phases.push({ id: generateId(), name, tasks: [], branches: [] });
+        document.getElementById('new-phase-name').value = '';
+        saveDB();
+    }
+
+    function deletePhase(id) {
+        if(confirm("Excluir esta fase e todos os negócios nela?")) {
+            db.phases = db.phases.filter(p => p.id !== id);
+            db.deals = db.deals.filter(d => d.phaseId !== id);
+            db.phases.forEach(p => p.branches = p.branches.filter(b => b.type !== 'move' && b.type !== 'move_and_add_tasks' || b.targetId !== id));
+            saveDB();
+        }
+    }
+
+    function addTask(phaseId) {
+        const task = prompt("Descrição da Tarefa Base:");
+        if (task) {
+            db.phases.find(p => p.id === phaseId).tasks.push({ id: generateId(), name: task });
+            saveDB();
+        }
+    }
+
+    function deleteTask(phaseId, taskId) {
+        const phase = db.phases.find(p => p.id === phaseId);
+        phase.tasks = phase.tasks.filter(t => t.id !== taskId);
+        saveDB();
+    }
+
+    function addBranch(phaseId) {
+        const name = prompt("Nome da bifurcação (ex: Cliente Respondeu):");
+        if (!name) return;
+        
+        const actionType = prompt("Ação da bifurcação:\n1 - Apenas Mover de fase\n2 - Apenas Adicionar Tarefas na fase atual\n3 - Mover de fase E Adicionar Tarefas");
+        
+        if (actionType === '1' || actionType === '3') {
+            if (db.phases.length < 2) return alert("Crie pelo menos 2 fases primeiro.");
+            let options = db.phases.filter(p => p.id !== phaseId).map((p, i) => `${i+1} - ${p.name}`).join('\n');
+            const targetIndex = prompt(`Para qual fase essa bifurcação leva?\n${options}`);
+            const targetPhase = db.phases.filter(p => p.id !== phaseId)[parseInt(targetIndex) - 1];
+
+            if (targetPhase) {
+                if (actionType === '1') {
+                    db.phases.find(p => p.id === phaseId).branches.push({ id: generateId(), type: 'move', name, targetId: targetPhase.id });
+                    saveDB();
+                } else if (actionType === '3') {
+                    const tasksStr = prompt("Digite as tarefas separadas por vírgula para a nova fase:");
+                    if (tasksStr) {
+                        const newTasks = tasksStr.split(',').map(t => ({ id: generateId(), name: t.trim(), script: "" }));
+                        db.phases.find(p => p.id === phaseId).branches.push({ id: generateId(), type: 'move_and_add_tasks', name, targetId: targetPhase.id, newTasks });
+                        saveDB();
+                    }
+                }
+            }
+        } else if (actionType === '2') {
+            const tasksStr = prompt("Digite as tarefas separadas por vírgula:");
+            if (tasksStr) {
+                const newTasks = tasksStr.split(',').map(t => ({ id: generateId(), name: t.trim(), script: "" }));
+                db.phases.find(p => p.id === phaseId).branches.push({ id: generateId(), type: 'add_tasks', name, newTasks });
+                saveDB();
+            }
+        }
+    }
+
+    function deleteBranch(phaseId, branchId) {
+        const phase = db.phases.find(p => p.id === phaseId);
+        phase.branches = phase.branches.filter(b => b.id !== branchId);
+        saveDB();
+    }
+
+    function editBranchTask(phaseId, branchId, taskId) {
+        const phase = db.phases.find(p => p.id === phaseId);
+        const branch = phase.branches.find(b => b.id === branchId);
+        const task = branch.newTasks.find(t => t.id === taskId);
+        const newName = prompt("Editar nome da tarefa da bifurcação:", task.name);
+        if (newName) {
+            task.name = newName.trim();
+            saveDB();
+        }
+    }
+
+    function deleteBranchTask(phaseId, branchId, taskId) {
+        if (confirm("Remover esta tarefa desta bifurcação?")) {
+            const phase = db.phases.find(p => p.id === phaseId);
+            const branch = phase.branches.find(b => b.id === branchId);
+            branch.newTasks = branch.newTasks.filter(t => t.id !== taskId);
+            saveDB();
+        }
+    }
+
+    function addBranchTask(phaseId, branchId) {
+        const taskName = prompt("Descrição da nova tarefa para esta bifurcação:");
+        if (taskName) {
+            const phase = db.phases.find(p => p.id === phaseId);
+            const branch = phase.branches.find(b => b.id === branchId);
+            branch.newTasks.push({ id: generateId(), name: taskName.trim(), script: "" });
+            saveDB();
+        }
+    }
+
+    // --- MODO USUÁRIO ---
+    function editUserName() {
+        const name = prompt("Qual o seu nome?", db.userName);
+        if (name) { db.userName = name; saveDB(); }
+    }
+
+    function addDeal() {
+        if (db.phases.length === 0) return alert("Peça ao Admin para criar fases primeiro.");
+        const name = prompt("Nome do Novo Negócio:");
+        if (name) {
+            db.deals.push({ id: generateId(), name, phaseId: db.phases[0].id, completedTasks: [], customTasks: [] });
+            saveDB();
+        }
+    }
+
+    function toggleScriptVisibility(taskId) {
+        document.getElementById(`script_box_${taskId}`).classList.toggle('d-none');
+    }
+
+    function openDeal(dealId) {
+        currentDealId = dealId;
+        const deal = db.deals.find(d => d.id === dealId);
+        const phase = db.phases.find(p => p.id === deal.phaseId);
+        
+        document.getElementById('dealModalTitle').innerText = deal.name;
+        
+        let allTasks = [...phase.tasks, ...(deal.customTasks || [])];
+        let tasksHtml = allTasks.length ? '' : '<p class="text-muted">Nenhuma tarefa.</p>';
+        
+        allTasks.forEach(t => {
+            const checked = deal.completedTasks.includes(t.id) ? 'checked' : '';
+            const isCustom = deal.customTasks && deal.customTasks.find(ct => ct.id === t.id);
+            const labelClass = isCustom ? 'custom-task' : '';
+            
+            let scriptHtml = '';
+            if (t.script) {
+                scriptHtml = `
+                <div class="mt-1 mb-3 ms-4">
+                    <button class="btn btn-sm text-info p-0" style="font-size: 0.85em; text-decoration: underline;" onclick="toggleScriptVisibility('${t.id}')">📄 Ver Script</button>
+                    <div id="script_box_${t.id}" class="d-none mt-2 p-2 border rounded script-box">${t.script}</div>
+                </div>`;
+            }
+
+            tasksHtml += `<div class="${t.script ? 'mb-1' : 'mb-2'}">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="task_${t.id}" ${checked} onchange="toggleTask('${deal.id}', '${t.id}')">
+                    <label class="form-check-label ${labelClass}" for="task_${t.id}">${t.name} ${isCustom ? '(Extra)' : ''}</label>
+                </div>
+                ${scriptHtml}
+            </div>`;
+        });
+        document.getElementById('deal-tasks').innerHTML = tasksHtml;
+
+        let branchesHtml = phase.branches.length ? '' : '<p class="text-muted">Sem bifurcações configuradas.</p>';
+        phase.branches.forEach(b => {
+            let btnClass = 'btn-outline-primary';
+            if (b.type === 'add_tasks') btnClass = 'btn-outline-warning';
+            if (b.type === 'move_and_add_tasks') btnClass = 'btn-outline-success';
+            
+            branchesHtml += `<button class="btn ${btnClass} btn-sm me-2 mb-2" onclick="handleBranch('${deal.id}', '${b.id}')">${b.name}</button>`;
+        });
+        document.getElementById('deal-branches').innerHTML = branchesHtml;
+
+        dealModal.show();
+    }
+
+    function toggleTask(dealId, taskId) {
+        const deal = db.deals.find(d => d.id === dealId);
+        if (deal.completedTasks.includes(taskId)) {
+            deal.completedTasks = deal.completedTasks.filter(id => id !== taskId);
+        } else {
+            deal.completedTasks.push(taskId);
+        }
+        saveDB();
+    }
+
+    function handleBranch(dealId, branchId) {
+        const deal = db.deals.find(d => d.id === dealId);
+        const phase = db.phases.find(p => p.id === deal.phaseId);
+        const branch = phase.branches.find(b => b.id === branchId);
+
+        if (branch.type === 'move') {
+            deal.phaseId = branch.targetId;
+            deal.completedTasks = [];
+            deal.customTasks = []; 
+            saveDB();
+            dealModal.hide();
+        } else if (branch.type === 'add_tasks') {
+            if (!deal.customTasks) deal.customTasks = [];
+            branch.newTasks.forEach(newTask => {
+                if (!deal.customTasks.find(t => t.originalId === newTask.id)) {
+                    deal.customTasks.push({ id: generateId(), name: newTask.name, originalId: newTask.id, script: newTask.script });
+                }
+            });
+            saveDB();
+            openDeal(dealId); 
+        } else if (branch.type === 'move_and_add_tasks') {
+            deal.phaseId = branch.targetId;
+            deal.completedTasks = [];
+            deal.customTasks = []; 
+            branch.newTasks.forEach(newTask => {
+                deal.customTasks.push({ id: generateId(), name: newTask.name, originalId: newTask.id, script: newTask.script });
+            });
+            saveDB();
+            dealModal.hide();
+        }
+    }
+
+    function deleteCurrentDeal() {
+        if (currentDealId && confirm("Tem certeza que deseja excluir este negócio? Esta ação não pode ser desfeita.")) {
+            db.deals = db.deals.filter(d => d.id !== currentDealId);
+            saveDB();
+            dealModal.hide();
+        }
+    }
+
+    // --- JSON EXPORT/IMPORT ---
+    function exportJSON() {
+        const exportData = {
+            userName: db.userName,
+            phases: db.phases,
+            deals: [] 
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData));
+        const anchor = document.createElement('a');
+        anchor.href = dataStr;
+        anchor.download = "funil_estrutura_admin.json";
+        anchor.click();
+    }
+
+    function importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                db.phases = importedData.phases || [];
+                db.userName = importedData.userName || db.userName;
+                db.deals = importedData.deals || []; 
+                saveDB();
+                alert("Estrutura restaurada com sucesso!");
+            } catch (err) {
+                alert("Arquivo JSON inválido.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- RENDER ---
+    function render() {
+        document.getElementById('user-panel').style.display = currentMode === 'user' ? 'block' : 'none';
+        document.getElementById('admin-panel').style.display = currentMode === 'admin' ? 'block' : 'none';
+        
+        document.getElementById('display-user-name').innerText = db.userName;
+
+        if (currentMode === 'admin') {
+            let html = '';
+            db.phases.forEach((p, i) => {
+                html += `<div class="card phase-card p-3 draggable" draggable="true" ondragstart="dragPhase(event, '${p.id}')" ondragover="allowDrop(event)" ondrop="dropPhase(event, '${p.id}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4>${i+1}. ${p.name} <span class="fs-6 text-muted">(Arraste para mover)</span></h4>
+                        <button class="btn btn-danger btn-sm" onclick="deletePhase('${p.id}')">Excluir Fase</button>
+                    </div>
+                    
+                    <div class="row mt-3" draggable="false">
+                        <div class="col-md-6" ondragover="allowDrop(event)">
+                            <h6>Tarefas Base <button class="btn btn-sm btn-outline-secondary ms-2" onclick="addTask('${p.id}')">+ Tarefa</button></h6>
+                            <ul class="p-0">${p.tasks.map(t => {
+                                const hasScript = t.script ? 'btn-info text-white' : 'btn-outline-info';
+                                return `<li class="draggable-task" draggable="true" ondragstart="dragTask(event, '${p.id}', '${t.id}')" ondragover="allowDrop(event)" ondrop="dropTask(event, '${p.id}', '${t.id}')">
+                                    ⣿ ${t.name} 
+                                    <div class="float-end">
+                                        <button class="btn ${hasScript} btn-xs me-1" title="Adicionar/Editar Script" onclick="openScriptEditor('${p.id}', '${t.id}')">📄</button>
+                                        <a href="#" class="text-danger" onclick="deleteTask('${p.id}', '${t.id}')">x</a>
+                                    </div>
+                                </li>`;
+                            }).join('')}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Bifurcações <button class="btn btn-sm btn-outline-secondary ms-2" onclick="addBranch('${p.id}')">+ Bifurcação</button></h6>
+                            <ul class="ps-3">${p.branches.map(b => {
+                                if (b.type === 'move') {
+                                    const target = db.phases.find(ph => ph.id === b.targetId);
+                                    return `<li class="mb-2"><strong>${b.name}</strong> ➔ Mover para: <em>${target ? target.name : '???'}</em> <a href="#" class="text-danger ms-2" onclick="deleteBranch('${p.id}', '${b.id}')">x</a></li>`;
+                                } else {
+                                    let tasksListHtml = '<div class="mt-1">';
+                                    b.newTasks.forEach(bt => {
+                                        const hasScriptBranch = bt.script ? 'btn-info text-white' : 'btn-outline-info';
+                                        tasksListHtml += `
+                                        <div class="bifurcation-task-item" draggable="true" ondragstart="dragBranchTask(event, '${p.id}', '${b.id}', '${bt.id}')" ondragover="allowDrop(event)" ondrop="dropBranchTask(event, '${p.id}', '${b.id}', '${bt.id}')">
+                                            <span>⣿ ${bt.name}</span>
+                                            <div>
+                                                <button class="btn ${hasScriptBranch} btn-xs" title="Adicionar/Editar Script" onclick="openScriptEditor('${p.id}', '${bt.id}', '${b.id}')">📄</button>
+                                                <button class="btn btn-warning btn-xs text-white" onclick="editBranchTask('${p.id}', '${b.id}', '${bt.id}')">✏️</button>
+                                                <button class="btn btn-danger btn-xs" onclick="deleteBranchTask('${p.id}', '${b.id}', '${bt.id}')">x</button>
+                                            </div>
+                                        </div>`;
+                                    });
+                                    tasksListHtml += `<button class="btn btn-light btn-sm dashed-btn w-100 mt-1" onclick="addBranchTask('${p.id}', '${b.id}')">+ Adicionar tarefa a esta bifurcação</button>`;
+                                    tasksListHtml += '</div>';
+
+                                    let title = b.type === 'add_tasks' ? 'Adiciona tarefas' : `Mover para: <em>${db.phases.find(ph => ph.id === b.targetId)?.name || '???'}</em> + Tarefas`;
+
+                                    return `<li class="mb-3">
+                                        <strong>${b.name}</strong> ➔ ${title} <a href="#" class="text-danger ms-2" onclick="deleteBranch('${p.id}', '${b.id}')">x</a>
+                                        ${tasksListHtml}
+                                    </li>`;
+                                }
+                            }).join('')}</ul>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('admin-phases-list').innerHTML = html;
+        } else {
+            let html = '';
+            db.phases.forEach(p => {
+                const phaseDeals = db.deals.filter(d => d.phaseId === p.id);
+                html += `<div class="col-md-3">
+                    <div class="card phase-card p-2 h-100" ondragover="allowDrop(event)" ondrop="dropDeal(event, '${p.id}')">
+                        <h5 class="text-center">${p.name} <span class="badge bg-secondary">${phaseDeals.length}</span></h5>
+                        <div class="deals-container mt-2">
+                            ${phaseDeals.map(d => `<div class="deal-card" draggable="true" ondragstart="dragDeal(event, '${d.id}')" onclick="openDeal('${d.id}')">${d.name}</div>`).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('funnel-board').innerHTML = html;
+        }
+    }
+
+    render();
+</script>
+</body>
+</html>
