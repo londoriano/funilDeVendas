@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' file:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:;">
     <title>Funil de Vendas - Âncora</title>
     <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="lib/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
@@ -254,6 +255,21 @@
 <script src="lib/chartjs/chart.min.js"></script>
 
 <script>
+    // Guard: garante que Bootstrap carregou antes de usar
+    if (typeof bootstrap === 'undefined') {
+        document.body.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;flex-direction:column;gap:16px;">
+                <div style="font-size:3rem;">⚠️</div>
+                <h2 style="color:#dc3545;">Bootstrap não carregou</h2>
+                <p style="color:#666;text-align:center;max-width:420px;">
+                    Os arquivos <code>lib/bootstrap/js/bootstrap.bundle.min.js</code> e
+                    <code>lib/bootstrap/css/bootstrap.min.css</code> não foram encontrados.<br><br>
+                    Verifique se a pasta <strong>lib/</strong> está na mesma pasta que o <strong>index.html</strong>.
+                </p>
+            </div>`;
+        throw new Error('Bootstrap não carregou. Verifique os arquivos lib/.');
+    }
+
     // =============================================
     // UTILITÁRIOS DE MODAL (substituem alert/confirm/prompt nativos)
     // =============================================
