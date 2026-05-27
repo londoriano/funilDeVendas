@@ -112,7 +112,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="#"><i class="bi bi-funnel-fill me-2"></i>Funil de Vendas</a>
+        <a class="navbar-brand" href="#"><i class="bi bi-funnel-fill me-2"></i>Funil de Vendas. Âncora Consultoria Financeira</a>
         <div class="d-flex gap-2 flex-wrap">
             <button class="btn btn-outline-light btn-sm" onclick="toggleMode('user')" id="btn-user-mode"><i class="bi bi-person me-1"></i>Usuário</button>
             <button class="btn btn-outline-info btn-sm" onclick="showReports()" id="btn-reports-mode"><i class="bi bi-bar-chart-line me-1"></i>Relatórios</button>
@@ -125,10 +125,14 @@
 
     <!-- ====== MODO USUÁRIO ====== -->
     <div id="user-panel">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h2 onclick="editUserName()" style="cursor:pointer;" title="Clique para editar" id="display-user-name">Usuário</h2>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
                 <button class="btn btn-outline-secondary btn-sm" onclick="openGoalsModal()"><i class="bi bi-bullseye me-1"></i>Metas</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="exportUserJSON()" title="Baixar backup dos dados do usuário"><i class="bi bi-download me-1"></i>Backup</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('import-user-file').click()" title="Restaurar dados do usuário a partir de backup"><i class="bi bi-upload me-1"></i>Restaurar</button>
+                <input type="file" id="import-user-file" style="display:none" accept=".json" onchange="importUserJSON(event)">
+                <button class="btn btn-outline-danger btn-sm" onclick="openClearUserDataModal()" title="Apagar todos os dados do usuário"><i class="bi bi-trash3 me-1"></i>Apagar Dados</button>
                 <button class="btn btn-success" onclick="addDeal()"><i class="bi bi-plus-lg me-1"></i> Novo Negócio</button>
             </div>
         </div>
@@ -336,6 +340,29 @@
     </div>
 </div>
 
+<!-- Modal Apagar Dados do Usuário -->
+<div class="modal fade" id="clearUserDataModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header modal-header-danger">
+                <h5 class="modal-title"><i class="bi bi-trash3 me-2"></i>Apagar Dados do Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-exclamation-triangle-fill modal-icon-confirm text-danger"></i>
+                <p class="text-muted mb-1">Esta ação apagará <strong>todos os dados do usuário</strong>: negócios, contadores, histórico e metas.</p>
+                <p class="text-muted mb-3" style="font-size:.85em;">A estrutura do funil (fases e scripts) será <strong>mantida</strong>. Digite a senha para confirmar.</p>
+                <input type="password" id="clear-user-password-input" class="form-control text-center" placeholder="••••••••" onkeydown="if(event.key==='Enter') confirmClearUserData()">
+                <div id="clear-user-password-error" class="text-danger mt-2 d-none" style="font-size:.85em;"><i class="bi bi-exclamation-circle me-1"></i>Senha incorreta.</div>
+            </div>
+            <div class="modal-footer justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelClearUserData()">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="confirmClearUserData()"><i class="bi bi-trash3 me-1"></i>Apagar Tudo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Metas -->
 <div class="modal fade" id="goalsModal" tabindex="-1">
     <div class="modal-dialog modal-md">
@@ -378,13 +405,14 @@ if (typeof bootstrap === 'undefined') {
 let _confirmResolve = null;
 let _promptResolve  = null;
 let _selectResolve  = null;
-const _confirmModal  = new bootstrap.Modal(document.getElementById('confirmModal'));
-const _promptModal   = new bootstrap.Modal(document.getElementById('promptModal'));
-const _selectModal   = new bootstrap.Modal(document.getElementById('selectModal'));
-const _alertModal    = new bootstrap.Modal(document.getElementById('alertModal'));
-const _adminPassModal= new bootstrap.Modal(document.getElementById('adminPasswordModal'));
-const _goalsModal    = new bootstrap.Modal(document.getElementById('goalsModal'));
-const _appToast      = new bootstrap.Toast(document.getElementById('appToast'), { delay: 3500 });
+const _confirmModal       = new bootstrap.Modal(document.getElementById('confirmModal'));
+const _promptModal        = new bootstrap.Modal(document.getElementById('promptModal'));
+const _selectModal        = new bootstrap.Modal(document.getElementById('selectModal'));
+const _alertModal         = new bootstrap.Modal(document.getElementById('alertModal'));
+const _adminPassModal     = new bootstrap.Modal(document.getElementById('adminPasswordModal'));
+const _goalsModal         = new bootstrap.Modal(document.getElementById('goalsModal'));
+const _clearUserDataModal = new bootstrap.Modal(document.getElementById('clearUserDataModal'));
+const _appToast           = new bootstrap.Toast(document.getElementById('appToast'), { delay: 3500 });
 
 function showToast(message, type = 'success') {
     const el = document.getElementById('appToast');
@@ -1178,20 +1206,117 @@ function exportJSON() {
 function importJSON(event) {
     const file = event.target.files[0];
     if (!file) return;
+    // Reset input so the same file can be re-imported if needed
+    event.target.value = '';
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
             const imported = JSON.parse(e.target.result);
-            db.phases   = imported.phases   || [];
-            db.userName = imported.userName  || db.userName;
-            db.deals    = imported.deals     || [];
+            // ⚠️  Admin import: atualiza APENAS a estrutura (fases/scripts).
+            // Dados do usuário (negócios, contadores, metas, nome) são preservados.
+            if (imported.phases) db.phases = imported.phases;
+            // Limpa negócios que referenciam fases que não existem mais
+            const phaseIds = new Set(db.phases.map(p => p.id));
+            db.deals = db.deals.filter(d => phaseIds.has(d.phaseId));
             saveDB();
-            showToast('Estrutura restaurada com sucesso!', 'success');
+            showToast('Estrutura do funil restaurada! Dados do usuário preservados.', 'success');
         } catch(err) {
             showAlert('Arquivo JSON inválido.', 'danger', 'Erro ao Importar');
         }
     };
     reader.readAsText(file);
+}
+
+// ============================================================
+// BACKUP / RESTAURAÇÃO / LIMPEZA — DADOS DO USUÁRIO
+// ============================================================
+
+/** Exporta APENAS os dados do usuário (sem a estrutura de fases/scripts) */
+function exportUserJSON() {
+    const userBackup = {
+        _type: 'ancora_user_backup',
+        _version: 1,
+        _exportedAt: new Date().toISOString(),
+        userName: db.userName,
+        deals: db.deals,
+        counters: db.counters,
+        goals: db.goals,
+    };
+    const a = document.createElement('a');
+    a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userBackup, null, 2));
+    const dateTag = todayStr().replace(/-/g, '');
+    a.download = `backup_usuario_ancora_${dateTag}.json`;
+    a.click();
+    showToast('Backup do usuário baixado!', 'success');
+}
+
+/** Importa backup de dados do usuário — NÃO altera fases/scripts */
+function importUserJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            // Aceita tanto o formato de backup de usuário quanto o formato completo antigo
+            const isUserBackup = imported._type === 'ancora_user_backup';
+            if (!isUserBackup && !imported.deals && !imported.counters) {
+                showAlert('Arquivo não reconhecido como backup de usuário.', 'danger', 'Erro ao Restaurar');
+                return;
+            }
+            const ok = await showConfirm(
+                'Isso irá substituir todos os seus dados de usuário (negócios, contadores, metas, nome) pelos do arquivo. A estrutura do funil (fases) não será alterada. Continuar?',
+                'Restaurar Dados do Usuário'
+            );
+            if (!ok) return;
+            if (imported.userName)  db.userName  = imported.userName;
+            if (imported.deals)     db.deals     = imported.deals;
+            if (imported.counters)  db.counters  = imported.counters;
+            if (imported.goals)     db.goals     = imported.goals;
+            // Sanitiza negócios que referenciam fases inexistentes
+            const phaseIds = new Set(db.phases.map(p => p.id));
+            db.deals = db.deals.filter(d => phaseIds.has(d.phaseId));
+            saveDB();
+            showToast('Dados do usuário restaurados com sucesso!', 'success');
+        } catch(err) {
+            showAlert('Arquivo JSON inválido ou corrompido.', 'danger', 'Erro ao Restaurar');
+        }
+    };
+    reader.readAsText(file);
+}
+
+/** Abre o modal de confirmação com senha para apagar dados do usuário */
+function openClearUserDataModal() {
+    document.getElementById('clear-user-password-input').value = '';
+    document.getElementById('clear-user-password-error').classList.add('d-none');
+    _clearUserDataModal.show();
+    setTimeout(() => document.getElementById('clear-user-password-input').focus(), 400);
+}
+
+function cancelClearUserData() {
+    document.getElementById('clear-user-password-input').value = '';
+    document.getElementById('clear-user-password-error').classList.add('d-none');
+}
+
+function confirmClearUserData() {
+    const pass = document.getElementById('clear-user-password-input').value;
+    if (pass !== 'Nimbus27@9') {
+        document.getElementById('clear-user-password-error').classList.remove('d-none');
+        document.getElementById('clear-user-password-input').value = '';
+        document.getElementById('clear-user-password-input').focus();
+        return;
+    }
+    // Apaga APENAS dados do usuário; preserva phases
+    db.userName = 'João Silva';
+    db.deals    = [];
+    db.counters = [];
+    db.goals    = { ligacoes:0, emails:0, diagAgend:0, diagRealizados:0, consultorias:0 };
+    document.getElementById('clear-user-password-input').value = '';
+    document.getElementById('clear-user-password-error').classList.add('d-none');
+    _clearUserDataModal.hide();
+    saveDB();
+    showToast('Dados do usuário apagados. Estrutura do funil mantida.', 'danger');
 }
 
 // ============================================================
