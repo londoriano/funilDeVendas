@@ -106,13 +106,34 @@
 
         /* Metas */
         .goal-badge { font-size: 0.7rem; background: #e8f4ff; color: #0d6efd; border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
+
+        /* ===== PROSPECÇÃO ===== */
+        #prospect-section .card-header { background: #f8f9fa; }
+        .prospect-row td { vertical-align: middle; font-size: .87rem; }
+        .prospect-row.status-pendente        { background: #fff; }
+        .prospect-row.status-nao_atendido    { background: #fff8e1; }
+        .prospect-row.status-numero_incorreto{ background: #fce4e4; }
+        .prospect-row.status-sem_interesse   { background: #f0f0f0; color: #888; }
+        .prospect-row.status-responsavel_ausente { background: #e8f4ff; }
+        .prospect-row.status-email_capturado { background: #e8f8f0; }
+        .status-badge { font-size: .72rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; display: inline-block; }
+        .status-badge.pendente          { background:#e9ecef; color:#495057; }
+        .status-badge.nao_atendido      { background:#fff3cd; color:#856404; }
+        .status-badge.numero_incorreto  { background:#f8d7da; color:#842029; }
+        .status-badge.sem_interesse     { background:#dee2e6; color:#495057; }
+        .status-badge.responsavel_ausente { background:#cfe2ff; color:#084298; }
+        .status-badge.email_capturado   { background:#d1e7dd; color:#0a3622; }
+        .btn-copy-phone { cursor: pointer; background: none; border: none; color: #0d6efd; padding: 0 4px; }
+        .btn-copy-phone:hover { color: #0a58ca; }
+        .phone-cell { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+        #prospect-section .table thead th { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
     </style>
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="#"><i class="bi bi-funnel-fill me-2"></i>Funil de Vendas. Âncora Consultoria Financeira</a>
+        <a class="navbar-brand" href="#"><i class="bi bi-funnel-fill me-2"></i>Funil de Vendas</a>
         <div class="d-flex gap-2 flex-wrap">
             <button class="btn btn-outline-light btn-sm" onclick="toggleMode('user')" id="btn-user-mode"><i class="bi bi-person me-1"></i>Usuário</button>
             <button class="btn btn-outline-info btn-sm" onclick="showReports()" id="btn-reports-mode"><i class="bi bi-bar-chart-line me-1"></i>Relatórios</button>
@@ -147,8 +168,59 @@
         </div>
 
         <!-- Kanban -->
-        <div id="funnel-wrap">
+        <div id="funnel-wrap" class="mb-4">
             <div id="funnel-board"></div>
+        </div>
+
+        <!-- Lista de Prospecção -->
+        <div id="prospect-section" class="mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2 py-2">
+                    <span class="fw-bold"><i class="bi bi-telephone-outbound me-2 text-primary"></i>Lista de Prospecção</span>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-outline-info btn-sm" onclick="openProspectScriptModal()" title="Ver / editar script de prospecção"><i class="bi bi-file-text me-1"></i>Script</button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="toggleProspectInput()" id="btn-toggle-prospect-input"><i class="bi bi-plus-lg me-1"></i>Carregar Lista</button>
+                        <button class="btn btn-outline-danger btn-sm" id="btn-clear-prospect" onclick="clearProspectList()" style="display:none"><i class="bi bi-trash me-1"></i>Limpar Tabela</button>
+                    </div>
+                </div>
+                <!-- Script visível (leitura) -->
+                <div id="prospect-script-display" class="card-body border-bottom py-2" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <span class="text-uppercase fw-semibold text-muted" style="font-size:.72rem;letter-spacing:.07em;"><i class="bi bi-chat-quote me-1"></i>Script de Prospecção</span>
+                            <pre id="prospect-script-text" class="mb-0 mt-1 script-box p-2 rounded" style="font-size:.84rem;white-space:pre-wrap;"></pre>
+                        </div>
+                        <button class="btn btn-xs btn-outline-secondary flex-shrink-0" onclick="toggleProspectScriptDisplay()" id="btn-collapse-script" title="Recolher script"><i class="bi bi-chevron-up"></i></button>
+                    </div>
+                </div>
+                <div id="prospect-input-area" class="card-body border-bottom" style="display:none;">
+                    <p class="text-muted mb-2" style="font-size:.83rem;"><i class="bi bi-info-circle me-1"></i>Cole sua lista no formato: <code>Empresa, Telefone; Empresa2, Telefone2</code> — uma entrada por linha ou separadas por ponto-e-vírgula.</p>
+                    <textarea id="prospect-raw-input" class="form-control font-monospace mb-2" rows="5" placeholder="Empresa ABC, (47) 99999-0001&#10;Empresa XYZ, (47) 98888-0002; Loja Delta, (47) 97777-0003"></textarea>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary btn-sm" onclick="loadProspectList()"><i class="bi bi-check-lg me-1"></i>Adicionar à Lista</button>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleProspectInput()">Cancelar</button>
+                    </div>
+                </div>
+                <div id="prospect-table-wrap" class="card-body p-0">
+                    <div id="prospect-empty" class="text-center text-muted py-4" style="font-size:.9rem;"><i class="bi bi-telephone-x fs-3 d-block mb-2 text-secondary"></i>Nenhuma empresa na lista. Clique em "Carregar Lista" para começar.</div>
+                    <div class="table-responsive" id="prospect-table-container" style="display:none;">
+                        <table class="table table-sm table-hover mb-0" id="prospect-table">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="width:30px;">#</th>
+                                    <th>Empresa</th>
+                                    <th>Telefone</th>
+                                    <th>Status</th>
+                                    <th>Responsável</th>
+                                    <th>E-mail</th>
+                                    <th style="width:110px;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prospect-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -157,6 +229,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Administração do Funil <small class="text-muted fs-6">(Arraste fases e tarefas para reordenar)</small></h2>
             <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-outline-info text-white" onclick="openProspectScriptModal()"><i class="bi bi-file-text me-1"></i> Script Prospecção</button>
                 <button class="btn btn-info text-white" onclick="exportJSON()"><i class="bi bi-download me-1"></i> Baixar JSON</button>
                 <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()"><i class="bi bi-upload me-1"></i> Restaurar JSON</button>
                 <input type="file" id="import-file" style="display:none" accept=".json" onchange="importJSON(event)">
@@ -380,6 +453,97 @@
     </div>
 </div>
 
+<!-- Modal Script de Prospecção -->
+<div class="modal fade" id="prospectScriptModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header modal-header-info">
+                <h5 class="modal-title"><i class="bi bi-file-text me-2"></i>Script de Prospecção</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Modo leitura (usuário) -->
+                <div id="prospect-script-modal-read">
+                    <pre id="prospect-script-modal-text" class="script-box p-3 rounded" style="white-space:pre-wrap;font-size:.88rem;min-height:120px;"></pre>
+                </div>
+                <!-- Modo edição (admin) -->
+                <div id="prospect-script-modal-edit" style="display:none;">
+                    <p class="text-muted mb-2" style="font-size:.83rem;"><i class="bi bi-info-circle me-1"></i>Este script ficará visível para os usuários na seção de prospecção.</p>
+                    <textarea id="prospect-script-editor" class="form-control" rows="12" placeholder="Cole aqui o script a ser seguido durante as ligações de prospecção..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" id="prospect-script-modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Resultado da Ligação -->
+<div class="modal fade" id="callResultModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header modal-header-primary">
+                <h5 class="modal-title"><i class="bi bi-telephone-fill me-2"></i>Resultado da Ligação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-1" style="font-size:.85rem;">Empresa: <strong id="call-result-empresa"></strong></p>
+                <p class="text-muted mb-3" style="font-size:.85rem;">Telefone: <strong id="call-result-telefone"></strong></p>
+                <p class="fw-semibold mb-2">O que aconteceu nesta ligação?</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-warning text-start" onclick="handleCallResult('nao_atendido')">
+                        <i class="bi bi-telephone-x me-2"></i>Não Atendido <small class="text-muted ms-1">(não conta ligação)</small>
+                    </button>
+                    <button class="btn btn-outline-danger text-start" onclick="handleCallResult('numero_incorreto')">
+                        <i class="bi bi-x-circle me-2"></i>Número Incorreto <small class="text-muted ms-1">(não conta ligação)</small>
+                    </button>
+                    <button class="btn btn-outline-secondary text-start" onclick="handleCallResult('sem_interesse')">
+                        <i class="bi bi-dash-circle me-2"></i>Sem Interesse <small class="text-muted ms-1">(+1 ligação)</small>
+                    </button>
+                    <button class="btn btn-outline-primary text-start" onclick="handleCallResult('responsavel_ausente')">
+                        <i class="bi bi-person-dash me-2"></i>Responsável Ausente <small class="text-muted ms-1">(+1 ligação)</small>
+                    </button>
+                    <button class="btn btn-outline-success text-start fw-semibold" onclick="handleCallResult('email_capturado')">
+                        <i class="bi bi-envelope-check me-2"></i>E-mail Capturado <small class="text-muted ms-1">(+1 ligação, +1 e-mail)</small>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Captura de E-mail -->
+<div class="modal fade" id="emailCaptureModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header modal-header-success">
+                <h5 class="modal-title"><i class="bi bi-envelope-check me-2"></i>E-mail Capturado!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3" style="font-size:.85rem;">Preencha os dados do responsável encontrado em <strong id="email-capture-empresa"></strong>:</p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nome do Responsável</label>
+                    <input type="text" id="email-capture-nome" class="form-control" placeholder="Ex: Maria Silva">
+                </div>
+                <div class="mb-1">
+                    <label class="form-label fw-semibold">E-mail do Responsável</label>
+                    <input type="email" id="email-capture-email" class="form-control" placeholder="Ex: maria@empresa.com.br">
+                </div>
+                <div id="email-capture-error" class="text-danger mt-1 d-none" style="font-size:.83rem;"><i class="bi bi-exclamation-circle me-1"></i>Preencha ao menos o e-mail.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" onclick="_rejectEmailCapture()">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmEmailCapture()"><i class="bi bi-check-lg me-1"></i>Salvar Contato</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast container -->
 <div class="toast-container">
     <div id="appToast" class="toast align-items-center border-0 text-white" role="alert">
@@ -405,14 +569,17 @@ if (typeof bootstrap === 'undefined') {
 let _confirmResolve = null;
 let _promptResolve  = null;
 let _selectResolve  = null;
-const _confirmModal       = new bootstrap.Modal(document.getElementById('confirmModal'));
-const _promptModal        = new bootstrap.Modal(document.getElementById('promptModal'));
-const _selectModal        = new bootstrap.Modal(document.getElementById('selectModal'));
-const _alertModal         = new bootstrap.Modal(document.getElementById('alertModal'));
-const _adminPassModal     = new bootstrap.Modal(document.getElementById('adminPasswordModal'));
-const _goalsModal         = new bootstrap.Modal(document.getElementById('goalsModal'));
-const _clearUserDataModal = new bootstrap.Modal(document.getElementById('clearUserDataModal'));
-const _appToast           = new bootstrap.Toast(document.getElementById('appToast'), { delay: 3500 });
+const _confirmModal         = new bootstrap.Modal(document.getElementById('confirmModal'));
+const _promptModal          = new bootstrap.Modal(document.getElementById('promptModal'));
+const _selectModal          = new bootstrap.Modal(document.getElementById('selectModal'));
+const _alertModal           = new bootstrap.Modal(document.getElementById('alertModal'));
+const _adminPassModal       = new bootstrap.Modal(document.getElementById('adminPasswordModal'));
+const _goalsModal           = new bootstrap.Modal(document.getElementById('goalsModal'));
+const _clearUserDataModal   = new bootstrap.Modal(document.getElementById('clearUserDataModal'));
+const _callResultModal      = new bootstrap.Modal(document.getElementById('callResultModal'));
+const _emailCaptureModal    = new bootstrap.Modal(document.getElementById('emailCaptureModal'));
+const _prospectScriptModal  = new bootstrap.Modal(document.getElementById('prospectScriptModal'));
+const _appToast             = new bootstrap.Toast(document.getElementById('appToast'), { delay: 3500 });
 
 function showToast(message, type = 'success') {
     const el = document.getElementById('appToast');
@@ -505,7 +672,9 @@ function defaultDB() {
         phases: [],
         deals: [],
         counters: [],   // Array de { id, date (ISO), ligacoes, emails, diagAgend, diagRealizados, consultorias, commDiag, commConsult }
-        goals: { ligacoes: 0, emails: 0, diagAgend: 0, diagRealizados: 0, consultorias: 0 }
+        goals: { ligacoes: 0, emails: 0, diagAgend: 0, diagRealizados: 0, consultorias: 0 },
+        prospectList: [],   // Array de { id, empresa, telefone, status, responsavel, emailResp, updatedAt }
+        prospectScript: ''  // Script de prospecção (editado pelo Admin, visível para usuários)
     };
 }
 
@@ -515,6 +684,8 @@ let db = (() => {
         if (!stored) return defaultDB();
         if (!stored.counters) stored.counters = [];
         if (!stored.goals) stored.goals = { ligacoes:0, emails:0, diagAgend:0, diagRealizados:0, consultorias:0 };
+        if (!stored.prospectList)   stored.prospectList   = [];
+        if (stored.prospectScript === undefined) stored.prospectScript = '';
         return stored;
     } catch(e) { return defaultDB(); }
 })();
@@ -1197,7 +1368,7 @@ async function deleteCurrentDeal() {
 // JSON EXPORT / IMPORT
 // ============================================================
 function exportJSON() {
-    const exportData = { userName: db.userName, phases: db.phases, deals: [] };
+    const exportData = { userName: db.userName, phases: db.phases, deals: [], prospectScript: db.prospectScript || '' };
     const a = document.createElement('a');
     a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData));
     a.download = "funil_estrutura_admin.json";
@@ -1215,6 +1386,7 @@ function importJSON(event) {
             // ⚠️  Admin import: atualiza APENAS a estrutura (fases/scripts).
             // Dados do usuário (negócios, contadores, metas, nome) são preservados.
             if (imported.phases) db.phases = imported.phases;
+            if (imported.prospectScript !== undefined) db.prospectScript = imported.prospectScript;
             // Limpa negócios que referenciam fases que não existem mais
             const phaseIds = new Set(db.phases.map(p => p.id));
             db.deals = db.deals.filter(d => phaseIds.has(d.phaseId));
@@ -1225,6 +1397,308 @@ function importJSON(event) {
         }
     };
     reader.readAsText(file);
+}
+
+// ============================================================
+// SCRIPT DE PROSPECÇÃO
+// ============================================================
+function openProspectScriptModal() {
+    const isAdmin = currentMode === 'admin';
+    const script  = db.prospectScript || '';
+
+    // Configura modo leitura vs edição
+    document.getElementById('prospect-script-modal-read').style.display = isAdmin ? 'none' : 'block';
+    document.getElementById('prospect-script-modal-edit').style.display = isAdmin ? 'block' : 'none';
+
+    if (isAdmin) {
+        document.getElementById('prospect-script-editor').value = script;
+        document.getElementById('prospect-script-modal-footer').innerHTML = `
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="saveProspectScript()"><i class="bi bi-check-lg me-1"></i>Salvar Script</button>`;
+    } else {
+        document.getElementById('prospect-script-modal-text').textContent = script || '(Nenhum script configurado pelo administrador.)';
+        document.getElementById('prospect-script-modal-footer').innerHTML = `
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>`;
+    }
+    _prospectScriptModal.show();
+}
+
+function saveProspectScript() {
+    db.prospectScript = document.getElementById('prospect-script-editor').value.trim();
+    localStorage.setItem('funnelDB', JSON.stringify(db));
+    _prospectScriptModal.hide();
+    renderProspectScriptBar();
+    showToast('Script de prospecção salvo!', 'success');
+}
+
+/** Atualiza o banner do script visível acima da tabela */
+function renderProspectScriptBar() {
+    const bar  = document.getElementById('prospect-script-display');
+    const text = document.getElementById('prospect-script-text');
+    if (!bar || !text) return;
+    if (db.prospectScript) {
+        text.textContent = db.prospectScript;
+        bar.style.display = 'block';
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+function toggleProspectScriptDisplay() {
+    const bar  = document.getElementById('prospect-script-display');
+    const btn  = document.getElementById('btn-collapse-script');
+    const pre  = document.getElementById('prospect-script-text');
+    if (!bar) return;
+    const collapsed = pre.style.display === 'none';
+    pre.style.display = collapsed ? '' : 'none';
+    btn.innerHTML = collapsed ? '<i class="bi bi-chevron-up"></i>' : '<i class="bi bi-chevron-down"></i>';
+    btn.title     = collapsed ? 'Recolher script' : 'Expandir script';
+}
+
+// ============================================================
+// CRIAR NEGÓCIO A PARTIR DA PROSPECÇÃO
+// ============================================================
+function createDealFromProspect(prospectId) {
+    if (db.phases.length === 0) {
+        showAlert('Configure pelo menos uma fase no Modo Admin antes de criar negócios.', 'warning');
+        return;
+    }
+    const p = db.prospectList.find(x => x.id === prospectId);
+    if (!p) return;
+    // Verifica se já existe negócio com mesmo nome na primeira fase
+    const existing = db.deals.find(d => d.name === p.empresa && d.phaseId === db.phases[0].id);
+    if (existing) {
+        showAlert(`Já existe um negócio chamado "${p.empresa}" na fase "${db.phases[0].name}".`, 'warning');
+        return;
+    }
+    db.deals.push({
+        id: generateId(),
+        name: p.empresa,
+        phaseId: db.phases[0].id,
+        completedTasks: [],
+        customTasks: [],
+    });
+    saveDB();
+    showToast(`Negócio "${p.empresa}" criado na fase "${db.phases[0].name}"!`, 'success');
+}
+
+// ============================================================
+// LISTA DE PROSPECÇÃO
+// ============================================================
+const PROSPECT_STATUS_LABELS = {
+    pendente:           { label: 'Pendente',            cls: 'pendente' },
+    nao_atendido:       { label: 'Não Atendido',        cls: 'nao_atendido' },
+    numero_incorreto:   { label: 'Nº Incorreto',        cls: 'numero_incorreto' },
+    sem_interesse:      { label: 'Sem Interesse',       cls: 'sem_interesse' },
+    responsavel_ausente:{ label: 'Resp. Ausente',       cls: 'responsavel_ausente' },
+    email_capturado:    { label: 'E-mail Capturado',    cls: 'email_capturado' },
+};
+
+let _activeProspectId = null;
+let _emailCaptureResolve = null;
+
+function toggleProspectInput() {
+    const area = document.getElementById('prospect-input-area');
+    const btn  = document.getElementById('btn-toggle-prospect-input');
+    const showing = area.style.display !== 'none';
+    area.style.display = showing ? 'none' : 'block';
+    btn.innerHTML = showing
+        ? '<i class="bi bi-plus-lg me-1"></i>Carregar Lista'
+        : '<i class="bi bi-x-lg me-1"></i>Cancelar';
+    if (!showing) setTimeout(() => document.getElementById('prospect-raw-input').focus(), 100);
+}
+
+function loadProspectList() {
+    const raw = document.getElementById('prospect-raw-input').value.trim();
+    if (!raw) { showAlert('Cole pelo menos uma entrada antes de carregar.', 'warning'); return; }
+
+    // Normaliza: substitui quebras de linha por ;, depois divide por ;
+    const entries = raw.replace(/\n/g, ';').split(';').map(s => s.trim()).filter(Boolean);
+    let added = 0;
+    entries.forEach(entry => {
+        const commaIdx = entry.indexOf(',');
+        if (commaIdx === -1) return;
+        const empresa  = entry.slice(0, commaIdx).trim();
+        const telefone = entry.slice(commaIdx + 1).trim();
+        if (!empresa || !telefone) return;
+        db.prospectList.push({
+            id: generateId(),
+            empresa, telefone,
+            status: 'pendente',
+            responsavel: '',
+            emailResp: '',
+            updatedAt: null,
+        });
+        added++;
+    });
+
+    if (added === 0) { showAlert('Nenhuma entrada válida encontrada. Use o formato: Empresa, Telefone', 'warning'); return; }
+
+    document.getElementById('prospect-raw-input').value = '';
+    toggleProspectInput();
+    saveDB();
+    showToast(`${added} empresa(s) adicionada(s) à lista!`, 'success');
+}
+
+async function clearProspectList() {
+    if (!db.prospectList.length) return;
+    const ok = await showConfirm(`Limpar a lista completa de ${db.prospectList.length} empresa(s)? Esta ação não pode ser desfeita.`, 'Limpar Lista de Prospecção');
+    if (!ok) return;
+    db.prospectList = [];
+    saveDB();
+    showToast('Lista de prospecção limpa.', 'danger');
+}
+
+function copyPhone(phone) {
+    navigator.clipboard.writeText(phone).then(() => {
+        showToast(`Telefone copiado: ${phone}`, 'success');
+    }).catch(() => {
+        // Fallback para ambientes sem clipboard API (Electron / file://)
+        const ta = document.createElement('textarea');
+        ta.value = phone; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(`Telefone copiado: ${phone}`, 'success');
+    });
+}
+
+function openCallResult(prospectId) {
+    const p = db.prospectList.find(x => x.id === prospectId);
+    if (!p) return;
+    _activeProspectId = prospectId;
+    document.getElementById('call-result-empresa').textContent  = p.empresa;
+    document.getElementById('call-result-telefone').textContent = p.telefone;
+    _callResultModal.show();
+}
+
+async function handleCallResult(result) {
+    _callResultModal.hide();
+    if (!_activeProspectId) return;
+    const p = db.prospectList.find(x => x.id === _activeProspectId);
+    if (!p) return;
+
+    // Resultados que NÃO contam ligação
+    if (result === 'nao_atendido' || result === 'numero_incorreto') {
+        p.status = result;
+        p.updatedAt = new Date().toISOString();
+        saveDB();
+        showToast(`Status atualizado: ${PROSPECT_STATUS_LABELS[result].label}`, 'secondary');
+        return;
+    }
+
+    // Resultados que contam +1 ligação
+    if (result === 'email_capturado') {
+        // Abre modal de captura de e-mail antes de salvar
+        const captured = await openEmailCapture(p.empresa);
+        if (captured === null) {
+            // Usuário cancelou — volta o modal de resultado
+            _callResultModal.show();
+            return;
+        }
+        p.responsavel = captured.nome;
+        p.emailResp   = captured.email;
+        p.status      = 'email_capturado';
+        p.updatedAt   = new Date().toISOString();
+        // +1 ligação +1 e-mail (sem confirmar — é automático do fluxo)
+        autoIncrementCounter('ligacoes');
+        autoIncrementCounter('emails');
+        saveDB();
+        showToast(`E-mail capturado para ${p.empresa}!`, 'success');
+    } else {
+        // sem_interesse | responsavel_ausente
+        p.status    = result;
+        p.updatedAt = new Date().toISOString();
+        autoIncrementCounter('ligacoes');
+        saveDB();
+        showToast(`Status: ${PROSPECT_STATUS_LABELS[result].label} (+1 ligação)`, 'secondary');
+    }
+}
+
+/** Incrementa contador SEM pedir confirmação (fluxo automático da ligação) */
+function autoIncrementCounter(key) {
+    const rec = getTodayRecord();
+    rec[key] = (rec[key] || 0) + 1;
+    // Salva direto no localStorage sem chamar render() completo agora
+    localStorage.setItem('funnelDB', JSON.stringify(db));
+}
+
+function openEmailCapture(empresa) {
+    return new Promise(resolve => {
+        _emailCaptureResolve = resolve;
+        document.getElementById('email-capture-empresa').textContent = empresa;
+        document.getElementById('email-capture-nome').value  = '';
+        document.getElementById('email-capture-email').value = '';
+        document.getElementById('email-capture-error').classList.add('d-none');
+        document.getElementById('emailCaptureModal').addEventListener('hidden.bs.modal', () => {
+            if (_emailCaptureResolve) { _emailCaptureResolve(null); _emailCaptureResolve = null; }
+        }, { once: true });
+        _emailCaptureModal.show();
+        setTimeout(() => document.getElementById('email-capture-nome').focus(), 400);
+    });
+}
+
+function _rejectEmailCapture() {
+    if (_emailCaptureResolve) { _emailCaptureResolve(null); _emailCaptureResolve = null; }
+}
+
+function confirmEmailCapture() {
+    const nome  = document.getElementById('email-capture-nome').value.trim();
+    const email = document.getElementById('email-capture-email').value.trim();
+    if (!email) {
+        document.getElementById('email-capture-error').classList.remove('d-none');
+        return;
+    }
+    _emailCaptureModal.hide();
+    if (_emailCaptureResolve) { _emailCaptureResolve({ nome, email }); _emailCaptureResolve = null; }
+}
+
+function renderProspectTable() {
+    const list = db.prospectList;
+    document.getElementById('prospect-empty').style.display           = list.length ? 'none' : 'block';
+    document.getElementById('prospect-table-container').style.display = list.length ? 'block' : 'none';
+    document.getElementById('btn-clear-prospect').style.display       = list.length ? 'inline-flex' : 'none';
+    renderProspectScriptBar();
+
+    if (!list.length) return;
+
+    document.getElementById('prospect-tbody').innerHTML = list.map((p, i) => {
+        const st     = PROSPECT_STATUS_LABELS[p.status] || PROSPECT_STATUS_LABELS.pendente;
+        const rowCls = `prospect-row status-${p.status}`;
+        const isPending = p.status === 'pendente' || p.status === 'nao_atendido' || p.status === 'responsavel_ausente';
+        const dealExists = db.phases.length > 0 && db.deals.some(d => d.name === p.empresa && d.phaseId === db.phases[0].id);
+        return `<tr class="${rowCls}">
+            <td class="text-muted ps-2">${i + 1}</td>
+            <td><span class="fw-semibold">${escHtml(p.empresa)}</span></td>
+            <td>
+                <div class="phone-cell">
+                    <span>${escHtml(p.telefone)}</span>
+                    <button class="btn-copy-phone" onclick="copyPhone('${escHtml(p.telefone)}')" title="Copiar telefone"><i class="bi bi-clipboard"></i></button>
+                </div>
+            </td>
+            <td><span class="status-badge ${st.cls}">${st.label}</span></td>
+            <td class="text-muted">${escHtml(p.responsavel || '—')}</td>
+            <td class="text-muted" style="font-size:.82rem;">${escHtml(p.emailResp || '—')}</td>
+            <td>
+                <div class="d-flex gap-1 flex-wrap">
+                    ${isPending
+                        ? `<button class="btn btn-primary btn-xs px-2 py-1" onclick="openCallResult('${p.id}')" title="Registrar resultado da ligação"><i class="bi bi-telephone-fill"></i></button>`
+                        : `<button class="btn btn-outline-secondary btn-xs px-2 py-1" onclick="openCallResult('${p.id}')" title="Alterar resultado"><i class="bi bi-arrow-repeat"></i></button>`
+                    }
+                    <button class="btn btn-xs px-2 py-1 ${dealExists ? 'btn-success' : 'btn-outline-success'}"
+                        onclick="createDealFromProspect('${p.id}')"
+                        title="${dealExists ? 'Negócio já criado' : 'Criar negócio no Kanban'}"
+                        ${dealExists ? 'disabled' : ''}>
+                        <i class="bi bi-briefcase${dealExists ? '-fill' : ''}"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ============================================================
@@ -1241,6 +1715,7 @@ function exportUserJSON() {
         deals: db.deals,
         counters: db.counters,
         goals: db.goals,
+        prospectList: db.prospectList,
     };
     const a = document.createElement('a');
     a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userBackup, null, 2));
@@ -1270,10 +1745,11 @@ function importUserJSON(event) {
                 'Restaurar Dados do Usuário'
             );
             if (!ok) return;
-            if (imported.userName)  db.userName  = imported.userName;
-            if (imported.deals)     db.deals     = imported.deals;
-            if (imported.counters)  db.counters  = imported.counters;
-            if (imported.goals)     db.goals     = imported.goals;
+            if (imported.userName)      db.userName     = imported.userName;
+            if (imported.deals)         db.deals        = imported.deals;
+            if (imported.counters)      db.counters     = imported.counters;
+            if (imported.goals)         db.goals        = imported.goals;
+            if (imported.prospectList)  db.prospectList = imported.prospectList;
             // Sanitiza negócios que referenciam fases inexistentes
             const phaseIds = new Set(db.phases.map(p => p.id));
             db.deals = db.deals.filter(d => phaseIds.has(d.phaseId));
@@ -1308,10 +1784,11 @@ function confirmClearUserData() {
         return;
     }
     // Apaga APENAS dados do usuário; preserva phases
-    db.userName = 'João Silva';
-    db.deals    = [];
-    db.counters = [];
-    db.goals    = { ligacoes:0, emails:0, diagAgend:0, diagRealizados:0, consultorias:0 };
+    db.userName     = 'João Silva';
+    db.deals        = [];
+    db.counters     = [];
+    db.goals        = { ligacoes:0, emails:0, diagAgend:0, diagRealizados:0, consultorias:0 };
+    db.prospectList = [];
     document.getElementById('clear-user-password-input').value = '';
     document.getElementById('clear-user-password-error').classList.add('d-none');
     _clearUserDataModal.hide();
@@ -1382,6 +1859,7 @@ function render() {
     } else {
         // Kanban modo usuário — colunas verticais com scroll horizontal
         renderCounters();
+        renderProspectTable();
         let html = '';
         db.phases.forEach(p => {
             const phaseDeals = db.deals.filter(d => d.phaseId === p.id);
