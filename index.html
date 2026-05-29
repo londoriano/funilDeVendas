@@ -211,6 +211,7 @@
                     <div class="d-flex gap-2 flex-wrap">
                         <button class="btn btn-outline-info btn-sm" onclick="openProspectScriptModal()" title="Ver / editar script de prospecção"><i class="bi bi-file-text me-1"></i>Script</button>
                         <button class="btn btn-outline-primary btn-sm" onclick="toggleProspectInput()" id="btn-toggle-prospect-input"><i class="bi bi-plus-lg me-1"></i>Carregar Lista</button>
+                        <button class="btn btn-outline-danger btn-sm" id="btn-clear-prospect" onclick="clearProspectList()" style="display:none"><i class="bi bi-trash me-1"></i>Limpar Tabela</button>
                     </div>
                 </div>
                 <!-- Script visível (leitura) -->
@@ -1723,6 +1724,7 @@ function renderProspectTable() {
     const list = db.prospectList;
     document.getElementById('prospect-empty').style.display           = list.length ? 'none' : 'block';
     document.getElementById('prospect-table-container').style.display = list.length ? 'block' : 'none';
+    document.getElementById('btn-clear-prospect').style.display       = list.length ? 'inline-flex' : 'none';
 
     // Badge de contagem no cabeçalho
     const badge = document.getElementById('prospect-count-badge');
