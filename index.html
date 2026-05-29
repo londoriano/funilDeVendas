@@ -109,24 +109,53 @@
 
         /* ===== PROSPECÇÃO ===== */
         #prospect-section .card-header { background: #f8f9fa; }
-        .prospect-row td { vertical-align: middle; font-size: .87rem; }
-        .prospect-row.status-pendente        { background: #fff; }
-        .prospect-row.status-nao_atendido    { background: #fff8e1; }
-        .prospect-row.status-numero_incorreto{ background: #fce4e4; }
-        .prospect-row.status-sem_interesse   { background: #f0f0f0; color: #888; }
+        .prospect-row td { vertical-align: middle; font-size: .87rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 0; }
+        .prospect-row.status-pendente         { background: #fff; }
+        .prospect-row.status-nao_atendido     { background: #fff8e1; }
+        .prospect-row.status-numero_incorreto { background: #fce4e4; }
+        .prospect-row.status-sem_interesse    { background: #f0f0f0; color: #888; }
         .prospect-row.status-responsavel_ausente { background: #e8f4ff; }
-        .prospect-row.status-email_capturado { background: #e8f8f0; }
+        .prospect-row.status-email_capturado  { background: #e8f8f0; }
         .status-badge { font-size: .72rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; display: inline-block; }
-        .status-badge.pendente          { background:#e9ecef; color:#495057; }
-        .status-badge.nao_atendido      { background:#fff3cd; color:#856404; }
-        .status-badge.numero_incorreto  { background:#f8d7da; color:#842029; }
-        .status-badge.sem_interesse     { background:#dee2e6; color:#495057; }
-        .status-badge.responsavel_ausente { background:#cfe2ff; color:#084298; }
-        .status-badge.email_capturado   { background:#d1e7dd; color:#0a3622; }
-        .btn-copy-phone { cursor: pointer; background: none; border: none; color: #0d6efd; padding: 0 4px; }
-        .btn-copy-phone:hover { color: #0a58ca; }
-        .phone-cell { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-        #prospect-section .table thead th { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+        .status-badge.pendente           { background:#e9ecef; color:#495057; }
+        .status-badge.nao_atendido       { background:#fff3cd; color:#856404; }
+        .status-badge.numero_incorreto   { background:#f8d7da; color:#842029; }
+        .status-badge.sem_interesse      { background:#dee2e6; color:#495057; }
+        .status-badge.responsavel_ausente{ background:#cfe2ff; color:#084298; }
+        .status-badge.email_capturado    { background:#d1e7dd; color:#0a3622; }
+        .btn-copy-phone { cursor:pointer; background:none; border:none; color:#0d6efd; padding:0 4px; }
+        .btn-copy-phone:hover { color:#0a58ca; }
+        .phone-cell { display:flex; align-items:center; gap:4px; }
+
+        /* Tabela redimensionável */
+        #prospect-table {
+            table-layout: fixed;
+            min-width: 860px;
+            width: 100%;
+        }
+        #prospect-table thead th {
+            position: relative;
+            font-size: .77rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            white-space: nowrap;
+            overflow: hidden;
+            user-select: none;
+            padding-right: 14px;
+        }
+        /* Handle de resize — barra vertical no canto direito do cabeçalho */
+        .col-resize-handle {
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 6px;
+            cursor: col-resize;
+            z-index: 2;
+            border-right: 2px solid transparent;
+            transition: border-color .15s;
+        }
+        .col-resize-handle:hover,
+        .col-resize-handle.resizing { border-right-color: #0d6efd; background: rgba(13,110,253,.08); }
+        #prospect-table-container { overflow-x: auto; }
     </style>
 </head>
 <body>
@@ -176,44 +205,65 @@
         <div id="prospect-section" class="mb-4">
             <div class="card shadow-sm">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2 py-2">
-                    <span class="fw-bold"><i class="bi bi-telephone-outbound me-2 text-primary"></i>Lista de Prospecção</span>
+                    <span class="fw-bold"><i class="bi bi-telephone-outbound me-2 text-primary"></i>Lista de Prospecção
+                        <span id="prospect-count-badge" class="badge bg-secondary ms-1" style="font-size:.7rem;display:none;"></span>
+                    </span>
                     <div class="d-flex gap-2 flex-wrap">
                         <button class="btn btn-outline-info btn-sm" onclick="openProspectScriptModal()" title="Ver / editar script de prospecção"><i class="bi bi-file-text me-1"></i>Script</button>
                         <button class="btn btn-outline-primary btn-sm" onclick="toggleProspectInput()" id="btn-toggle-prospect-input"><i class="bi bi-plus-lg me-1"></i>Carregar Lista</button>
-                        <button class="btn btn-outline-danger btn-sm" id="btn-clear-prospect" onclick="clearProspectList()" style="display:none"><i class="bi bi-trash me-1"></i>Limpar Tabela</button>
                     </div>
                 </div>
                 <!-- Script visível (leitura) -->
                 <div id="prospect-script-display" class="card-body border-bottom py-2" style="display:none;">
                     <div class="d-flex justify-content-between align-items-start gap-2">
-                        <div>
+                        <div style="flex:1;">
                             <span class="text-uppercase fw-semibold text-muted" style="font-size:.72rem;letter-spacing:.07em;"><i class="bi bi-chat-quote me-1"></i>Script de Prospecção</span>
                             <pre id="prospect-script-text" class="mb-0 mt-1 script-box p-2 rounded" style="font-size:.84rem;white-space:pre-wrap;"></pre>
                         </div>
                         <button class="btn btn-xs btn-outline-secondary flex-shrink-0" onclick="toggleProspectScriptDisplay()" id="btn-collapse-script" title="Recolher script"><i class="bi bi-chevron-up"></i></button>
                     </div>
                 </div>
+                <!-- Área de carga -->
                 <div id="prospect-input-area" class="card-body border-bottom" style="display:none;">
-                    <p class="text-muted mb-2" style="font-size:.83rem;"><i class="bi bi-info-circle me-1"></i>Cole sua lista no formato: <code>Empresa, Telefone; Empresa2, Telefone2</code> — uma entrada por linha ou separadas por ponto-e-vírgula.</p>
-                    <textarea id="prospect-raw-input" class="form-control font-monospace mb-2" rows="5" placeholder="Empresa ABC, (47) 99999-0001&#10;Empresa XYZ, (47) 98888-0002; Loja Delta, (47) 97777-0003"></textarea>
+                    <p class="text-muted mb-2" style="font-size:.83rem;">
+                        <i class="bi bi-info-circle me-1"></i>Formato: <code>Empresa, Telefone, Setor, Cidade</code> — uma por linha ou separadas por <code>;</code>. Setor e Cidade são opcionais.
+                    </p>
+                    <textarea id="prospect-raw-input" class="form-control font-monospace mb-2" rows="6"
+                        placeholder="Empresa ABC, (47) 99999-0001, Contabilidade, Florianópolis&#10;Loja XYZ, (47) 98888-0002, Varejo, Joinville; Oficina Beta, (47) 97777-0003"></textarea>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary btn-sm" onclick="loadProspectList()"><i class="bi bi-check-lg me-1"></i>Adicionar à Lista</button>
                         <button class="btn btn-secondary btn-sm" onclick="toggleProspectInput()">Cancelar</button>
                     </div>
                 </div>
+                <!-- Tabela -->
                 <div id="prospect-table-wrap" class="card-body p-0">
-                    <div id="prospect-empty" class="text-center text-muted py-4" style="font-size:.9rem;"><i class="bi bi-telephone-x fs-3 d-block mb-2 text-secondary"></i>Nenhuma empresa na lista. Clique em "Carregar Lista" para começar.</div>
-                    <div class="table-responsive" id="prospect-table-container" style="display:none;">
+                    <div id="prospect-empty" class="text-center text-muted py-4" style="font-size:.9rem;">
+                        <i class="bi bi-telephone-x fs-3 d-block mb-2 text-secondary"></i>Nenhuma empresa na lista. Clique em "Carregar Lista" para começar.
+                    </div>
+                    <div id="prospect-table-container" style="display:none;">
                         <table class="table table-sm table-hover mb-0" id="prospect-table">
-                            <thead class="table-light sticky-top">
+                            <colgroup>
+                                <col style="width:36px">
+                                <col style="width:160px">
+                                <col style="width:148px">
+                                <col style="width:120px">
+                                <col style="width:110px">
+                                <col style="width:108px">
+                                <col style="width:130px">
+                                <col style="width:160px">
+                                <col style="width:96px">
+                            </colgroup>
+                            <thead class="table-light">
                                 <tr>
-                                    <th style="width:30px;">#</th>
-                                    <th>Empresa</th>
-                                    <th>Telefone</th>
-                                    <th>Status</th>
-                                    <th>Responsável</th>
-                                    <th>E-mail</th>
-                                    <th style="width:110px;">Ações</th>
+                                    <th style="width:36px;">#</th>
+                                    <th style="width:160px;">Empresa</th>
+                                    <th style="width:148px;">Telefone</th>
+                                    <th style="width:120px;">Setor</th>
+                                    <th style="width:110px;">Cidade</th>
+                                    <th style="width:108px;">Status</th>
+                                    <th style="width:130px;">Responsável</th>
+                                    <th style="width:160px;">E-mail</th>
+                                    <th style="width:96px;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="prospect-tbody"></tbody>
@@ -1512,18 +1562,20 @@ function loadProspectList() {
     const raw = document.getElementById('prospect-raw-input').value.trim();
     if (!raw) { showAlert('Cole pelo menos uma entrada antes de carregar.', 'warning'); return; }
 
-    // Normaliza: substitui quebras de linha por ;, depois divide por ;
+    // Normaliza: quebras de linha → ; depois divide
     const entries = raw.replace(/\n/g, ';').split(';').map(s => s.trim()).filter(Boolean);
-    let added = 0;
+    let added = 0, skipped = 0;
     entries.forEach(entry => {
-        const commaIdx = entry.indexOf(',');
-        if (commaIdx === -1) return;
-        const empresa  = entry.slice(0, commaIdx).trim();
-        const telefone = entry.slice(commaIdx + 1).trim();
-        if (!empresa || !telefone) return;
+        const parts = entry.split(',').map(s => s.trim());
+        if (parts.length < 2) { skipped++; return; }
+        const empresa  = parts[0];
+        const telefone = parts[1];
+        const setor    = parts[2] || '';
+        const cidade   = parts[3] || '';
+        if (!empresa || !telefone) { skipped++; return; }
         db.prospectList.push({
             id: generateId(),
-            empresa, telefone,
+            empresa, telefone, setor, cidade,
             status: 'pendente',
             responsavel: '',
             emailResp: '',
@@ -1532,12 +1584,16 @@ function loadProspectList() {
         added++;
     });
 
-    if (added === 0) { showAlert('Nenhuma entrada válida encontrada. Use o formato: Empresa, Telefone', 'warning'); return; }
+    if (added === 0) {
+        showAlert('Nenhuma entrada válida. Use: Empresa, Telefone, Setor, Cidade (Setor e Cidade são opcionais).', 'warning');
+        return;
+    }
 
     document.getElementById('prospect-raw-input').value = '';
     toggleProspectInput();
     saveDB();
-    showToast(`${added} empresa(s) adicionada(s) à lista!`, 'success');
+    const msg = skipped > 0 ? `${added} adicionada(s), ${skipped} ignorada(s) (formato inválido).` : `${added} empresa(s) adicionada(s)!`;
+    showToast(msg, 'success');
 }
 
 async function clearProspectList() {
@@ -1547,6 +1603,16 @@ async function clearProspectList() {
     db.prospectList = [];
     saveDB();
     showToast('Lista de prospecção limpa.', 'danger');
+}
+
+async function deleteProspectRow(prospectId) {
+    const p = db.prospectList.find(x => x.id === prospectId);
+    if (!p) return;
+    const ok = await showConfirm(`Remover "${p.empresa}" da lista?`, 'Excluir Empresa');
+    if (!ok) return;
+    db.prospectList = db.prospectList.filter(x => x.id !== prospectId);
+    saveDB();
+    showToast(`"${p.empresa}" removida.`, 'secondary');
 }
 
 function copyPhone(phone) {
@@ -1657,49 +1723,127 @@ function renderProspectTable() {
     const list = db.prospectList;
     document.getElementById('prospect-empty').style.display           = list.length ? 'none' : 'block';
     document.getElementById('prospect-table-container').style.display = list.length ? 'block' : 'none';
-    document.getElementById('btn-clear-prospect').style.display       = list.length ? 'inline-flex' : 'none';
-    renderProspectScriptBar();
 
+    // Badge de contagem no cabeçalho
+    const badge = document.getElementById('prospect-count-badge');
+    if (badge) {
+        badge.textContent = list.length ? `${list.length}` : '';
+        badge.style.display = list.length ? 'inline-block' : 'none';
+    }
+
+    renderProspectScriptBar();
     if (!list.length) return;
 
     document.getElementById('prospect-tbody').innerHTML = list.map((p, i) => {
-        const st     = PROSPECT_STATUS_LABELS[p.status] || PROSPECT_STATUS_LABELS.pendente;
-        const rowCls = `prospect-row status-${p.status}`;
-        const isPending = p.status === 'pendente' || p.status === 'nao_atendido' || p.status === 'responsavel_ausente';
+        const st         = PROSPECT_STATUS_LABELS[p.status] || PROSPECT_STATUS_LABELS.pendente;
+        const rowCls     = `prospect-row status-${p.status}`;
+        const isPending  = p.status === 'pendente' || p.status === 'nao_atendido' || p.status === 'responsavel_ausente';
         const dealExists = db.phases.length > 0 && db.deals.some(d => d.name === p.empresa && d.phaseId === db.phases[0].id);
-        return `<tr class="${rowCls}">
-            <td class="text-muted ps-2">${i + 1}</td>
-            <td><span class="fw-semibold">${escHtml(p.empresa)}</span></td>
+        const phoneEsc   = escHtml(p.telefone);
+        return `<tr class="${rowCls}" title="${escHtml(p.empresa)}">
+            <td class="text-muted ps-2" style="width:36px;">${i + 1}</td>
+            <td title="${escHtml(p.empresa)}"><span class="fw-semibold">${escHtml(p.empresa)}</span></td>
             <td>
                 <div class="phone-cell">
-                    <span>${escHtml(p.telefone)}</span>
-                    <button class="btn-copy-phone" onclick="copyPhone('${escHtml(p.telefone)}')" title="Copiar telefone"><i class="bi bi-clipboard"></i></button>
+                    <span>${phoneEsc}</span>
+                    <button class="btn-copy-phone" onclick="copyPhone('${phoneEsc}')" title="Copiar número"><i class="bi bi-clipboard"></i></button>
                 </div>
             </td>
+            <td class="text-muted" title="${escHtml(p.setor||'')}">${escHtml(p.setor || '—')}</td>
+            <td class="text-muted" title="${escHtml(p.cidade||'')}">${escHtml(p.cidade || '—')}</td>
             <td><span class="status-badge ${st.cls}">${st.label}</span></td>
-            <td class="text-muted">${escHtml(p.responsavel || '—')}</td>
-            <td class="text-muted" style="font-size:.82rem;">${escHtml(p.emailResp || '—')}</td>
+            <td class="text-muted" title="${escHtml(p.responsavel||'')}">${escHtml(p.responsavel || '—')}</td>
+            <td class="text-muted" style="font-size:.82rem;" title="${escHtml(p.emailResp||'')}">${escHtml(p.emailResp || '—')}</td>
             <td>
-                <div class="d-flex gap-1 flex-wrap">
+                <div class="d-flex gap-1">
                     ${isPending
                         ? `<button class="btn btn-primary btn-xs px-2 py-1" onclick="openCallResult('${p.id}')" title="Registrar resultado da ligação"><i class="bi bi-telephone-fill"></i></button>`
                         : `<button class="btn btn-outline-secondary btn-xs px-2 py-1" onclick="openCallResult('${p.id}')" title="Alterar resultado"><i class="bi bi-arrow-repeat"></i></button>`
                     }
                     <button class="btn btn-xs px-2 py-1 ${dealExists ? 'btn-success' : 'btn-outline-success'}"
                         onclick="createDealFromProspect('${p.id}')"
-                        title="${dealExists ? 'Negócio já criado' : 'Criar negócio no Kanban'}"
+                        title="${dealExists ? 'Negócio já criado no Kanban' : 'Criar negócio no Kanban'}"
                         ${dealExists ? 'disabled' : ''}>
                         <i class="bi bi-briefcase${dealExists ? '-fill' : ''}"></i>
                     </button>
+                    <button class="btn btn-outline-danger btn-xs px-2 py-1" onclick="deleteProspectRow('${p.id}')" title="Remover esta empresa da lista"><i class="bi bi-trash"></i></button>
                 </div>
             </td>
         </tr>`;
     }).join('');
+
+    // Inicializa handles de resize após renderizar
+    initResizableColumns();
 }
 
 function escHtml(str) {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ============================================================
+// COLUNAS REDIMENSIONÁVEIS — TABELA DE PROSPECÇÃO
+// ============================================================
+function initResizableColumns() {
+    const table = document.getElementById('prospect-table');
+    if (!table) return;
+
+    // Remove handles anteriores para evitar duplicação no re-render
+    table.querySelectorAll('.col-resize-handle').forEach(h => h.remove());
+
+    const cols    = table.querySelectorAll('colgroup col');
+    const headers = table.querySelectorAll('thead th');
+
+    headers.forEach((th, i) => {
+        // A última coluna (Ações) não precisa de handle
+        if (i >= headers.length - 1) return;
+
+        const handle = document.createElement('div');
+        handle.className = 'col-resize-handle';
+        handle.title = 'Arraste para redimensionar';
+        th.appendChild(handle);
+
+        let startX = 0, startW = 0;
+
+        handle.addEventListener('mousedown', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            startX = e.pageX;
+            startW = th.offsetWidth;
+            handle.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+
+            function onMove(ev) {
+                const delta = ev.pageX - startX;
+                const newW  = Math.max(50, startW + delta);
+                th.style.width    = newW + 'px';
+                th.style.minWidth = newW + 'px';
+                if (cols[i]) { cols[i].style.width = newW + 'px'; }
+            }
+
+            function onUp() {
+                handle.classList.remove('resizing');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup',   onUp);
+            }
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup',   onUp);
+        });
+    });
+}
+
+// Migra entradas antigas que não têm setor/cidade
+(function migrateProspectList() {
+    let changed = false;
+    db.prospectList.forEach(p => {
+        if (p.setor  === undefined) { p.setor  = ''; changed = true; }
+        if (p.cidade === undefined) { p.cidade = ''; changed = true; }
+    });
+    if (changed) localStorage.setItem('funnelDB', JSON.stringify(db));
+})();
 
 // ============================================================
 // BACKUP / RESTAURAÇÃO / LIMPEZA — DADOS DO USUÁRIO
