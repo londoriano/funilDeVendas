@@ -123,6 +123,8 @@
         .status-badge.sem_interesse      { background:#dee2e6; color:#495057; }
         .status-badge.responsavel_ausente{ background:#cfe2ff; color:#084298; }
         .status-badge.email_capturado    { background:#d1e7dd; color:#0a3622; }
+        .status-badge.ligar_mais_tarde   { background:#e0f3ff; color:#005f8a; }
+        .prospect-row.status-ligar_mais_tarde { background:#f0faff; }
         .btn-copy-phone { cursor:pointer; background:none; border:none; color:#0d6efd; padding:0 4px; }
         .btn-copy-phone:hover { color:#0a58ca; }
         .phone-cell { display:flex; align-items:center; gap:4px; }
@@ -209,19 +211,8 @@
                         <span id="prospect-count-badge" class="badge bg-secondary ms-1" style="font-size:.7rem;display:none;"></span>
                     </span>
                     <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-outline-info btn-sm" onclick="openProspectScriptModal()" title="Ver / editar script de prospecção"><i class="bi bi-file-text me-1"></i>Script</button>
                         <button class="btn btn-outline-primary btn-sm" onclick="toggleProspectInput()" id="btn-toggle-prospect-input"><i class="bi bi-plus-lg me-1"></i>Carregar Lista</button>
                         <button class="btn btn-outline-danger btn-sm" id="btn-clear-prospect" onclick="clearProspectList()" style="display:none"><i class="bi bi-trash me-1"></i>Limpar Tabela</button>
-                    </div>
-                </div>
-                <!-- Script visível (leitura) -->
-                <div id="prospect-script-display" class="card-body border-bottom py-2" style="display:none;">
-                    <div class="d-flex justify-content-between align-items-start gap-2">
-                        <div style="flex:1;">
-                            <span class="text-uppercase fw-semibold text-muted" style="font-size:.72rem;letter-spacing:.07em;"><i class="bi bi-chat-quote me-1"></i>Script de Prospecção</span>
-                            <pre id="prospect-script-text" class="mb-0 mt-1 script-box p-2 rounded" style="font-size:.84rem;white-space:pre-wrap;"></pre>
-                        </div>
-                        <button class="btn btn-xs btn-outline-secondary flex-shrink-0" onclick="toggleProspectScriptDisplay()" id="btn-collapse-script" title="Recolher script"><i class="bi bi-chevron-up"></i></button>
                     </div>
                 </div>
                 <!-- Área de carga -->
@@ -530,38 +521,111 @@
     </div>
 </div>
 
-<!-- Modal Resultado da Ligação -->
+<!-- Modal Resultado da Ligação — layout bi-coluna (script + opções) -->
 <div class="modal fade" id="callResultModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header modal-header-primary">
+            <div class="modal-header modal-header-primary py-2">
                 <h5 class="modal-title"><i class="bi bi-telephone-fill me-2"></i>Resultado da Ligação</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p class="text-muted mb-1" style="font-size:.85rem;">Empresa: <strong id="call-result-empresa"></strong></p>
-                <p class="text-muted mb-3" style="font-size:.85rem;">Telefone: <strong id="call-result-telefone"></strong></p>
-                <p class="fw-semibold mb-2">O que aconteceu nesta ligação?</p>
-                <div class="d-grid gap-2">
-                    <button class="btn btn-outline-warning text-start" onclick="handleCallResult('nao_atendido')">
-                        <i class="bi bi-telephone-x me-2"></i>Não Atendido <small class="text-muted ms-1">(não conta ligação)</small>
-                    </button>
-                    <button class="btn btn-outline-danger text-start" onclick="handleCallResult('numero_incorreto')">
-                        <i class="bi bi-x-circle me-2"></i>Número Incorreto <small class="text-muted ms-1">(não conta ligação)</small>
-                    </button>
-                    <button class="btn btn-outline-secondary text-start" onclick="handleCallResult('sem_interesse')">
-                        <i class="bi bi-dash-circle me-2"></i>Sem Interesse <small class="text-muted ms-1">(+1 ligação)</small>
-                    </button>
-                    <button class="btn btn-outline-primary text-start" onclick="handleCallResult('responsavel_ausente')">
-                        <i class="bi bi-person-dash me-2"></i>Responsável Ausente <small class="text-muted ms-1">(+1 ligação)</small>
-                    </button>
-                    <button class="btn btn-outline-success text-start fw-semibold" onclick="handleCallResult('email_capturado')">
-                        <i class="bi bi-envelope-check me-2"></i>E-mail Capturado <small class="text-muted ms-1">(+1 ligação, +1 e-mail)</small>
-                    </button>
-                </div>
+            <div class="modal-body p-0">
+                <div class="row g-0" style="min-height:420px;">
+
+                    <!-- ── ESQUERDA: Script ── -->
+                    <div class="col-lg-6 border-end d-flex flex-column" style="background:#fdfdfe;">
+                        <div class="px-3 pt-3 pb-1">
+                            <span class="text-uppercase fw-semibold text-muted" style="font-size:.72rem;letter-spacing:.07em;">
+                                <i class="bi bi-chat-quote me-1 text-info"></i>Script de Prospecção
+                            </span>
+                        </div>
+                        <div id="call-script-content" class="script-box mx-3 mb-3 mt-1 p-3 rounded flex-grow-1"
+                             style="overflow-y:auto;max-height:58vh;white-space:pre-wrap;font-size:.86rem;min-height:200px;"></div>
+                        <div id="call-script-empty" class="text-muted text-center py-5 flex-grow-1" style="display:none;">
+                            <i class="bi bi-file-earmark-x fs-2 d-block mb-2 text-secondary"></i>
+                            Nenhum script configurado.<br>
+                            <small>Acesse o painel Admin para adicionar.</small>
+                        </div>
+                    </div>
+
+                    <!-- ── DIREITA: Empresa + Opções ── -->
+                    <div class="col-lg-6 d-flex flex-column p-3">
+
+                        <!-- Info da empresa -->
+                        <div class="rounded p-2 mb-3" style="background:#f0f4ff;border:1px solid #d0dbff;">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-building text-primary fs-5 mt-1"></i>
+                                <div>
+                                    <div class="fw-bold fs-6" id="call-result-empresa"></div>
+                                    <div class="text-muted" id="call-result-telefone" style="font-size:.85rem;"></div>
+                                    <div class="text-muted" id="call-result-extra" style="font-size:.8rem;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botões de resultado -->
+                        <div class="fw-semibold mb-2" style="font-size:.9rem;">O que aconteceu nesta ligação?</div>
+                        <div id="call-result-buttons" class="d-grid gap-2">
+                            <button class="btn btn-outline-warning text-start" onclick="handleCallResult('nao_atendido')">
+                                <i class="bi bi-telephone-x me-2"></i>Não Atendido
+                                <small class="text-muted float-end mt-1" style="font-size:.75rem;">não conta ligação</small>
+                            </button>
+                            <button class="btn btn-outline-danger text-start" onclick="handleCallResult('numero_incorreto')">
+                                <i class="bi bi-x-circle me-2"></i>Número Incorreto
+                                <small class="text-muted float-end mt-1" style="font-size:.75rem;">não conta ligação</small>
+                            </button>
+                            <button class="btn btn-outline-secondary text-start" onclick="handleCallResult('sem_interesse')">
+                                <i class="bi bi-dash-circle me-2"></i>Sem Interesse
+                                <small class="text-muted float-end mt-1" style="font-size:.75rem;">+1 ligação</small>
+                            </button>
+                            <button class="btn btn-outline-primary text-start" onclick="handleCallResult('responsavel_ausente')">
+                                <i class="bi bi-person-dash me-2"></i>Responsável Ausente
+                                <small class="text-muted float-end mt-1" style="font-size:.75rem;">+1 ligação</small>
+                            </button>
+                            <button class="btn btn-outline-success text-start fw-semibold" onclick="handleCallResult('email_capturado')">
+                                <i class="bi bi-envelope-check me-2"></i>E-mail Capturado
+                                <small class="text-muted float-end mt-1" style="font-size:.75rem;">+1 ligação, +1 e-mail</small>
+                            </button>
+                            <button class="btn btn-outline-info text-start" onclick="showScheduleSection()">
+                                <i class="bi bi-clock me-2"></i>Ligar Mais Tarde
+                                <small class="text-muted float-end mt-1" style="font-size:.75rem;">agendar retorno</small>
+                            </button>
+                        </div>
+
+                        <!-- Seção agendamento (oculta por padrão) -->
+                        <div id="call-schedule-section" class="mt-auto pt-3" style="display:none;">
+                            <hr class="mb-3 mt-0">
+                            <div class="fw-semibold mb-2" style="font-size:.9rem;">
+                                <i class="bi bi-calendar-event me-1 text-info"></i>Agendar Retorno
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-7">
+                                    <label class="form-label mb-1" style="font-size:.8rem;color:#555;">Data</label>
+                                    <input type="date" id="schedule-date" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-5">
+                                    <label class="form-label mb-1" style="font-size:.8rem;color:#555;">Hora</label>
+                                    <input type="time" id="schedule-time" class="form-control form-control-sm">
+                                </div>
+                            </div>
+                            <div id="schedule-error" class="text-danger mb-2 d-none" style="font-size:.82rem;">
+                                <i class="bi bi-exclamation-circle me-1"></i>Selecione data e hora.
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-info text-white btn-sm flex-grow-1" onclick="confirmScheduleCall()">
+                                    <i class="bi bi-check-lg me-1"></i>Confirmar Agendamento
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="cancelScheduleCall()" title="Voltar">
+                                    <i class="bi bi-arrow-left"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div><!-- /col direita -->
+                </div><!-- /row -->
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -1482,29 +1546,10 @@ function saveProspectScript() {
     showToast('Script de prospecção salvo!', 'success');
 }
 
-/** Atualiza o banner do script visível acima da tabela */
-function renderProspectScriptBar() {
-    const bar  = document.getElementById('prospect-script-display');
-    const text = document.getElementById('prospect-script-text');
-    if (!bar || !text) return;
-    if (db.prospectScript) {
-        text.textContent = db.prospectScript;
-        bar.style.display = 'block';
-    } else {
-        bar.style.display = 'none';
-    }
-}
+/** Script agora exibido apenas no modal de ligação — banner removido */
+function renderProspectScriptBar() { /* no-op */ }
 
-function toggleProspectScriptDisplay() {
-    const bar  = document.getElementById('prospect-script-display');
-    const btn  = document.getElementById('btn-collapse-script');
-    const pre  = document.getElementById('prospect-script-text');
-    if (!bar) return;
-    const collapsed = pre.style.display === 'none';
-    pre.style.display = collapsed ? '' : 'none';
-    btn.innerHTML = collapsed ? '<i class="bi bi-chevron-up"></i>' : '<i class="bi bi-chevron-down"></i>';
-    btn.title     = collapsed ? 'Recolher script' : 'Expandir script';
-}
+function toggleProspectScriptDisplay() { /* no-op */ }
 
 // ============================================================
 // CRIAR NEGÓCIO A PARTIR DA PROSPECÇÃO
@@ -1537,12 +1582,13 @@ function createDealFromProspect(prospectId) {
 // LISTA DE PROSPECÇÃO
 // ============================================================
 const PROSPECT_STATUS_LABELS = {
-    pendente:           { label: 'Pendente',            cls: 'pendente' },
-    nao_atendido:       { label: 'Não Atendido',        cls: 'nao_atendido' },
-    numero_incorreto:   { label: 'Nº Incorreto',        cls: 'numero_incorreto' },
-    sem_interesse:      { label: 'Sem Interesse',       cls: 'sem_interesse' },
-    responsavel_ausente:{ label: 'Resp. Ausente',       cls: 'responsavel_ausente' },
-    email_capturado:    { label: 'E-mail Capturado',    cls: 'email_capturado' },
+    pendente:            { label: 'Pendente',            cls: 'pendente' },
+    nao_atendido:        { label: 'Não Atendido',        cls: 'nao_atendido' },
+    numero_incorreto:    { label: 'Nº Incorreto',        cls: 'numero_incorreto' },
+    sem_interesse:       { label: 'Sem Interesse',       cls: 'sem_interesse' },
+    responsavel_ausente: { label: 'Resp. Ausente',       cls: 'responsavel_ausente' },
+    email_capturado:     { label: 'E-mail Capturado',    cls: 'email_capturado' },
+    ligar_mais_tarde:    { label: 'Ligar Mais Tarde',    cls: 'ligar_mais_tarde' },
 };
 
 let _activeProspectId = null;
@@ -1634,9 +1680,68 @@ function openCallResult(prospectId) {
     const p = db.prospectList.find(x => x.id === prospectId);
     if (!p) return;
     _activeProspectId = prospectId;
+
+    // Info da empresa
     document.getElementById('call-result-empresa').textContent  = p.empresa;
     document.getElementById('call-result-telefone').textContent = p.telefone;
+    const extra = [p.setor, p.cidade].filter(Boolean).join(' · ');
+    document.getElementById('call-result-extra').textContent = extra;
+
+    // Script
+    const scriptEl    = document.getElementById('call-script-content');
+    const scriptEmpty = document.getElementById('call-script-empty');
+    if (db.prospectScript) {
+        scriptEl.textContent     = db.prospectScript;
+        scriptEl.style.display   = 'block';
+        scriptEmpty.style.display = 'none';
+    } else {
+        scriptEl.style.display   = 'none';
+        scriptEmpty.style.display = 'flex';
+    }
+
+    // Reset agendamento
+    cancelScheduleCall();
     _callResultModal.show();
+}
+
+function showScheduleSection() {
+    document.getElementById('call-result-buttons').style.display  = 'none';
+    document.getElementById('call-schedule-section').style.display = 'block';
+    document.getElementById('schedule-error').classList.add('d-none');
+    // Pré-preenche com a data de hoje e hora atual arredondada
+    const now = new Date();
+    now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
+    document.getElementById('schedule-date').value = now.toISOString().slice(0, 10);
+    document.getElementById('schedule-time').value = now.toTimeString().slice(0, 5);
+    setTimeout(() => document.getElementById('schedule-date').focus(), 100);
+}
+
+function cancelScheduleCall() {
+    document.getElementById('call-result-buttons').style.display   = 'grid';
+    document.getElementById('call-schedule-section').style.display = 'none';
+    const errEl = document.getElementById('schedule-error');
+    if (errEl) errEl.classList.add('d-none');
+}
+
+function confirmScheduleCall() {
+    const date = document.getElementById('schedule-date').value;
+    const time = document.getElementById('schedule-time').value;
+    if (!date || !time) {
+        document.getElementById('schedule-error').classList.remove('d-none');
+        return;
+    }
+    document.getElementById('schedule-error').classList.add('d-none');
+    _callResultModal.hide();
+
+    const p = db.prospectList.find(x => x.id === _activeProspectId);
+    if (!p) return;
+    p.status        = 'ligar_mais_tarde';
+    p.scheduledCall = `${date}T${time}`;
+    p.updatedAt     = new Date().toISOString();
+    saveDB();
+
+    const dtFormatted = new Date(`${date}T${time}`).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    showToast(`Retorno agendado para ${dtFormatted}`, 'success');
 }
 
 async function handleCallResult(result) {
@@ -1739,7 +1844,7 @@ function renderProspectTable() {
     document.getElementById('prospect-tbody').innerHTML = list.map((p, i) => {
         const st         = PROSPECT_STATUS_LABELS[p.status] || PROSPECT_STATUS_LABELS.pendente;
         const rowCls     = `prospect-row status-${p.status}`;
-        const isPending  = p.status === 'pendente' || p.status === 'nao_atendido' || p.status === 'responsavel_ausente';
+        const isPending  = p.status === 'pendente' || p.status === 'nao_atendido' || p.status === 'responsavel_ausente' || p.status === 'ligar_mais_tarde';
         const dealExists = db.phases.length > 0 && db.deals.some(d => d.name === p.empresa && d.phaseId === db.phases[0].id);
         const phoneEsc   = escHtml(p.telefone);
         return `<tr class="${rowCls}" title="${escHtml(p.empresa)}">
@@ -1753,7 +1858,14 @@ function renderProspectTable() {
             </td>
             <td class="text-muted" title="${escHtml(p.setor||'')}">${escHtml(p.setor || '—')}</td>
             <td class="text-muted" title="${escHtml(p.cidade||'')}">${escHtml(p.cidade || '—')}</td>
-            <td><span class="status-badge ${st.cls}">${st.label}</span></td>
+            <td>
+                <span class="status-badge ${st.cls}">${st.label}</span>
+                ${p.status === 'ligar_mais_tarde' && p.scheduledCall
+                    ? `<div style="font-size:.72rem;color:#005f8a;margin-top:3px;white-space:nowrap;">
+                           <i class="bi bi-clock me-1"></i>${new Date(p.scheduledCall).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+                       </div>`
+                    : ''}
+            </td>
             <td class="text-muted" title="${escHtml(p.responsavel||'')}">${escHtml(p.responsavel || '—')}</td>
             <td class="text-muted" style="font-size:.82rem;" title="${escHtml(p.emailResp||'')}">${escHtml(p.emailResp || '—')}</td>
             <td>
@@ -1841,8 +1953,9 @@ function initResizableColumns() {
 (function migrateProspectList() {
     let changed = false;
     db.prospectList.forEach(p => {
-        if (p.setor  === undefined) { p.setor  = ''; changed = true; }
-        if (p.cidade === undefined) { p.cidade = ''; changed = true; }
+        if (p.setor       === undefined) { p.setor        = ''; changed = true; }
+        if (p.cidade      === undefined) { p.cidade       = ''; changed = true; }
+        if (p.scheduledCall === undefined) { p.scheduledCall = null; changed = true; }
     });
     if (changed) localStorage.setItem('funnelDB', JSON.stringify(db));
 })();
