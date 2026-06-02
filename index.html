@@ -555,9 +555,14 @@
                         <div class="rounded p-2 mb-3" style="background:#f0f4ff;border:1px solid #d0dbff;">
                             <div class="d-flex align-items-start gap-2">
                                 <i class="bi bi-building text-primary fs-5 mt-1"></i>
-                                <div>
+                                <div class="flex-grow-1">
                                     <div class="fw-bold fs-6" id="call-result-empresa"></div>
-                                    <div class="text-muted" id="call-result-telefone" style="font-size:.85rem;"></div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mt-1">
+                                        <span class="text-muted" id="call-result-telefone" style="font-size:.85rem;"></span>
+                                        <a id="call-result-tel-link" href="#" class="btn btn-success btn-xs px-2 py-1" title="Ligar agora (abre discador)" style="font-size:.78rem;text-decoration:none;">
+                                            <i class="bi bi-telephone-fill me-1"></i>Ligar
+                                        </a>
+                                    </div>
                                     <div class="text-muted" id="call-result-extra" style="font-size:.8rem;"></div>
                                 </div>
                             </div>
@@ -659,6 +664,13 @@
                 <div class="mb-1">
                     <label class="form-label fw-semibold">E-mail do Responsável</label>
                     <input type="email" id="email-capture-email" class="form-control" placeholder="Ex: maria@empresa.com.br">
+                </div>
+                <div class="mb-1 mt-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-whatsapp text-success me-1"></i>WhatsApp
+                        <span class="text-muted fw-normal" style="font-size:.82rem;">(opcional)</span>
+                    </label>
+                    <input type="tel" id="email-capture-whatsapp" class="form-control" placeholder="Ex: (47) 99999-0001">
                 </div>
                 <div id="email-capture-error" class="text-danger mt-1 d-none" style="font-size:.83rem;"><i class="bi bi-exclamation-circle me-1"></i>Preencha ao menos o e-mail.</div>
             </div>
@@ -1695,6 +1707,7 @@ function openCallResult(prospectId) {
     // Info da empresa
     document.getElementById('call-result-empresa').textContent  = p.empresa;
     document.getElementById('call-result-telefone').textContent = p.telefone;
+    document.getElementById('call-result-tel-link').href = 'tel:' + p.telefone.replace(/\D/g, '');
     const extra = [p.setor, p.cidade].filter(Boolean).join(' · ');
     document.getElementById('call-result-extra').textContent = extra;
 
@@ -1800,6 +1813,7 @@ async function handleCallResult(result) {
         }
         p.responsavel = captured.nome;
         p.emailResp   = captured.email;
+        p.whatsapp    = captured.whatsapp || '';
         p.status      = 'email_capturado';
         p.updatedAt   = new Date().toISOString();
         // +1 ligação +1 e-mail (sem confirmar — é automático do fluxo)
@@ -1831,6 +1845,7 @@ function openEmailCapture(empresa) {
         document.getElementById('email-capture-empresa').textContent = empresa;
         document.getElementById('email-capture-nome').value  = '';
         document.getElementById('email-capture-email').value = '';
+        document.getElementById('email-capture-whatsapp').value = '';
         document.getElementById('email-capture-error').classList.add('d-none');
         document.getElementById('emailCaptureModal').addEventListener('hidden.bs.modal', () => {
             if (_emailCaptureResolve) { _emailCaptureResolve(null); _emailCaptureResolve = null; }
@@ -1845,14 +1860,15 @@ function _rejectEmailCapture() {
 }
 
 function confirmEmailCapture() {
-    const nome  = document.getElementById('email-capture-nome').value.trim();
-    const email = document.getElementById('email-capture-email').value.trim();
+    const nome      = document.getElementById('email-capture-nome').value.trim();
+    const email     = document.getElementById('email-capture-email').value.trim();
+    const whatsapp  = document.getElementById('email-capture-whatsapp').value.trim();
     if (!email) {
         document.getElementById('email-capture-error').classList.remove('d-none');
         return;
     }
     _emailCaptureModal.hide();
-    if (_emailCaptureResolve) { _emailCaptureResolve({ nome, email }); _emailCaptureResolve = null; }
+    if (_emailCaptureResolve) { _emailCaptureResolve({ nome, email, whatsapp }); _emailCaptureResolve = null; }
 }
 
 function renderProspectTable() {
@@ -1886,7 +1902,6 @@ function renderProspectTable() {
             <td>
                 <div class="phone-cell">
                     <span>${phoneEsc}</span>
-                    <a href="tel:${escHtml(p.telefone.replace(/\D/g,''))}" class="btn-copy-phone" title="Ligar agora (abre discador)" onclick="event.stopPropagation()"><i class="bi bi-telephone-fill text-success"></i></a>
                     <button class="btn-copy-phone" onclick="copyPhone('${phoneEsc}')" title="Copiar número"><i class="bi bi-clipboard"></i></button>
                 </div>
             </td>
@@ -1901,7 +1916,10 @@ function renderProspectTable() {
                     : ''}
             </td>
             <td class="text-muted" title="${escHtml(p.responsavel||'')}">${escHtml(p.responsavel || '—')}</td>
-            <td class="text-muted" style="font-size:.82rem;" title="${escHtml(p.emailResp||'')}">${escHtml(p.emailResp || '—')}</td>
+            <td class="text-muted" style="font-size:.82rem;" title="${escHtml(p.emailResp||'')}">
+                ${escHtml(p.emailResp || '—')}
+                ${p.whatsapp ? `<div style="font-size:.75rem;color:#198754;margin-top:2px;" title="WhatsApp: ${escHtml(p.whatsapp)}"><i class="bi bi-whatsapp me-1"></i>${escHtml(p.whatsapp)}</div>` : ''}
+            </td>
             <td>
                 <div class="d-flex gap-1">
                     ${isPending
