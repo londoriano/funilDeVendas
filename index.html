@@ -158,6 +158,56 @@
         .col-resize-handle:hover,
         .col-resize-handle.resizing { border-right-color: #0d6efd; background: rgba(13,110,253,.08); }
         #prospect-table-container { overflow-x: auto; }
+
+        /* ===== OCULTAR COLUNAS ===== */
+        /* th/td ocultos: sem padding, sem borda, overflow hidden — largura controlada via JS no <col> */
+        #prospect-table th.col-hidden,
+        #prospect-table td.col-hidden {
+            padding: 0 !important;
+            overflow: hidden !important;
+            border-left: none !important;
+            border-right: none !important;
+            white-space: nowrap;
+        }
+        /* Esconde todo conteúdo exceto o botão olhinho */
+        #prospect-table th.col-hidden > *:not(.col-show-btn) { display: none !important; }
+        #prospect-table td.col-hidden > * { display: none !important; }
+        /* Botão olhinho — visível na coluna oculta */
+        .col-show-btn {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            min-height: 22px;
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: #0d6efd;
+            font-size: .78rem;
+        }
+        .col-show-btn:hover { color: #0a58ca; }
+        /* Botão × ocultar — aparece no hover do th */
+        .col-hide-btn {
+            position: absolute; top: 50%; right: 16px; transform: translateY(-50%);
+            background: none; border: none; padding: 0 2px; cursor: pointer;
+            color: #ced4da; font-size: .68rem; line-height: 1; z-index: 3;
+            opacity: 0; transition: opacity .15s;
+        }
+        #prospect-table thead th:hover .col-hide-btn { opacity: 1; }
+        .col-hide-btn:hover { color: #dc3545; opacity: 1 !important; }
+
+        /* ===== PAINEL PROSPECT NO MODAL DE NEGÓCIO ===== */
+        #deal-prospect-panel {
+            background: #f0f4ff; border: 1px solid #d0dbff; border-radius: 8px;
+            padding: 10px 14px; margin-bottom: 16px; font-size: .84rem;
+        }
+        .prospect-field { display: flex; align-items: center; gap: 4px; padding: 2px 0; min-width: 0; }
+        .prospect-field .pf-label { color: #6c757d; font-size: .75rem; min-width: 76px; flex-shrink: 0; }
+        .prospect-field .pf-value { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .btn-copy-deal { cursor: pointer; background: none; border: none; color: #adb5bd; padding: 0 3px; font-size: .75rem; flex-shrink: 0; }
+        .btn-copy-deal:hover { color: #0d6efd; }
     </style>
 </head>
 <body>
@@ -235,27 +285,27 @@
                     <div id="prospect-table-container" style="display:none;">
                         <table class="table table-sm table-hover mb-0" id="prospect-table">
                             <colgroup>
-                                <col style="width:36px">
-                                <col style="width:160px">
-                                <col style="width:148px">
-                                <col style="width:120px">
-                                <col style="width:110px">
-                                <col style="width:108px">
-                                <col style="width:130px">
-                                <col style="width:160px">
-                                <col style="width:96px">
+                                <col data-col="num"        style="width:36px">
+                                <col data-col="empresa"    style="width:160px">
+                                <col data-col="telefone"   style="width:148px">
+                                <col data-col="setor"      style="width:120px">
+                                <col data-col="cidade"     style="width:110px">
+                                <col data-col="status"     style="width:108px">
+                                <col data-col="responsavel" style="width:130px">
+                                <col data-col="email"      style="width:160px">
+                                <col data-col="acoes"      style="width:96px">
                             </colgroup>
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:36px;">#</th>
-                                    <th style="width:160px;">Empresa</th>
-                                    <th style="width:148px;">Telefone</th>
-                                    <th style="width:120px;">Setor</th>
-                                    <th style="width:110px;">Cidade</th>
-                                    <th style="width:108px;">Status</th>
-                                    <th style="width:130px;">Responsável</th>
-                                    <th style="width:160px;">E-mail</th>
-                                    <th style="width:96px;">Ações</th>
+                                    <th style="width:36px;" data-col="num">#</th>
+                                    <th style="width:160px;" data-col="empresa">Empresa<button class="col-hide-btn" onclick="hideCol('empresa')" title="Ocultar coluna">×</button></th>
+                                    <th style="width:148px;" data-col="telefone">Telefone<button class="col-hide-btn" onclick="hideCol('telefone')" title="Ocultar coluna">×</button></th>
+                                    <th style="width:120px;" data-col="setor">Setor<button class="col-hide-btn" onclick="hideCol('setor')" title="Ocultar coluna">×</button></th>
+                                    <th style="width:110px;" data-col="cidade">Cidade<button class="col-hide-btn" onclick="hideCol('cidade')" title="Ocultar coluna">×</button></th>
+                                    <th style="width:108px;" data-col="status">Status<button class="col-hide-btn" onclick="hideCol('status')" title="Ocultar coluna">×</button></th>
+                                    <th style="width:130px;" data-col="responsavel">Responsável<button class="col-hide-btn" onclick="hideCol('responsavel')" title="Ocultar coluna">×</button></th>
+                                    <th style="width:160px;" data-col="email">E-mail<button class="col-hide-btn" onclick="hideCol('email')" title="Ocultar coluna">×</button></th>
+                                    <th style="width:96px;" data-col="acoes">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="prospect-tbody"></tbody>
@@ -319,6 +369,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- Painel de dados da prospecção (preenchido por JS quando criado via tabela) -->
+                <div id="deal-prospect-panel" style="display:none;"></div>
                 <h6 class="text-muted text-uppercase fw-semibold mb-2" style="font-size:.78em;letter-spacing:.08em;"><i class="bi bi-check2-square me-1"></i>Tarefas desta Fase</h6>
                 <div id="deal-tasks" class="mb-4"></div>
                 <h6 class="text-muted text-uppercase fw-semibold mb-2" style="font-size:.78em;letter-spacing:.08em;"><i class="bi bi-bezier2 me-1"></i>Ações / Bifurcações</h6>
@@ -660,6 +712,15 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Nome do Responsável</label>
                     <input type="text" id="email-capture-nome" class="form-control" placeholder="Ex: Maria Silva">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="bi bi-person-badge me-1 text-primary"></i>Cargo</label>
+                    <div class="d-flex gap-2">
+                        <input type="radio" class="btn-check" name="email-capture-cargo" id="cargo-proprietario" value="Proprietário" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm flex-fill" for="cargo-proprietario"><i class="bi bi-person-fill-gear me-1"></i>Proprietário</label>
+                        <input type="radio" class="btn-check" name="email-capture-cargo" id="cargo-gerente" value="Gerente" autocomplete="off">
+                        <label class="btn btn-outline-secondary btn-sm flex-fill" for="cargo-gerente"><i class="bi bi-person-workspace me-1"></i>Gerente</label>
+                    </div>
                 </div>
                 <div class="mb-1">
                     <label class="form-label fw-semibold">E-mail do Responsável</label>
@@ -1428,6 +1489,42 @@ function openDeal(dealId) {
     const phase = db.phases.find(p => p.id === deal.phaseId);
     document.getElementById('dealModalTitle').innerText = deal.name;
 
+    // Painel de dados da prospecção
+    const panel = document.getElementById('deal-prospect-panel');
+    const pd    = deal.prospectData;
+    if (pd && Object.values(pd).some(v => v)) {
+        const cpBtn = (val, title) => val
+            ? `<button class="btn-copy-deal" onclick="copyText('${escHtml(val).replace(/'/g,"\\'")}', event)" title="Copiar ${title}"><i class="bi bi-clipboard"></i></button>`
+            : '';
+        const row = (icon, label, val, extra) => val
+            ? `<div class="prospect-field">
+                <span class="pf-label"><i class="bi ${icon} me-1"></i>${label}</span>
+                <span class="pf-value">${escHtml(val)}${extra ? `<span style="color:#6c757d;font-size:.78rem;"> ${escHtml(extra)}</span>` : ''}</span>
+                ${cpBtn(val, label)}
+               </div>` : '';
+        panel.innerHTML = `
+            <div class="d-flex align-items-center gap-1 mb-2">
+                <i class="bi bi-telephone-outbound text-primary me-1"></i>
+                <span class="fw-semibold" style="font-size:.82rem;text-transform:uppercase;letter-spacing:.04em;color:#0d6efd;">Dados da Prospecção</span>
+            </div>
+            <div class="row g-0">
+                <div class="col-md-6">
+                    ${row('bi-building',       'Empresa',     pd.empresa, '')}
+                    ${row('bi-telephone',      'Telefone',    pd.telefone, '')}
+                    ${row('bi-tag',            'Setor',       pd.setor, '')}
+                    ${row('bi-geo-alt',        'Cidade',      pd.cidade, '')}
+                </div>
+                <div class="col-md-6">
+                    ${row('bi-person',         'Responsável', pd.responsavel, pd.cargo ? `(${pd.cargo})` : '')}
+                    ${row('bi-envelope',       'E-mail',      pd.emailResp, '')}
+                    ${row('bi-whatsapp',       'WhatsApp',    pd.whatsapp, '')}
+                </div>
+            </div>`;
+        panel.style.display = 'block';
+    } else {
+        panel.style.display = 'none';
+    }
+
     let allTasks = [...phase.tasks, ...(deal.customTasks || [])];
     let tasksHtml = allTasks.length ? '' : '<p class="text-muted fst-italic">Nenhuma tarefa configurada.</p>';
     allTasks.forEach(t => {
@@ -1596,6 +1693,16 @@ function createDealFromProspect(prospectId) {
         phaseId: db.phases[0].id,
         completedTasks: [],
         customTasks: [],
+        prospectData: {
+            empresa:     p.empresa     || '',
+            telefone:    p.telefone    || '',
+            setor:       p.setor       || '',
+            cidade:      p.cidade      || '',
+            responsavel: p.responsavel || '',
+            cargo:       p.cargo       || '',
+            emailResp:   p.emailResp   || '',
+            whatsapp:    p.whatsapp    || '',
+        },
     });
     saveDB();
     showToast(`Negócio "${p.empresa}" criado na fase "${db.phases[0].name}"!`, 'success');
@@ -1814,6 +1921,7 @@ async function handleCallResult(result) {
         p.responsavel = captured.nome;
         p.emailResp   = captured.email;
         p.whatsapp    = captured.whatsapp || '';
+        p.cargo       = captured.cargo || '';
         p.status      = 'email_capturado';
         p.updatedAt   = new Date().toISOString();
         // +1 ligação +1 e-mail (sem confirmar — é automático do fluxo)
@@ -1846,6 +1954,7 @@ function openEmailCapture(empresa) {
         document.getElementById('email-capture-nome').value  = '';
         document.getElementById('email-capture-email').value = '';
         document.getElementById('email-capture-whatsapp').value = '';
+        document.querySelectorAll('input[name="email-capture-cargo"]').forEach(r => r.checked = false);
         document.getElementById('email-capture-error').classList.add('d-none');
         document.getElementById('emailCaptureModal').addEventListener('hidden.bs.modal', () => {
             if (_emailCaptureResolve) { _emailCaptureResolve(null); _emailCaptureResolve = null; }
@@ -1863,12 +1972,14 @@ function confirmEmailCapture() {
     const nome      = document.getElementById('email-capture-nome').value.trim();
     const email     = document.getElementById('email-capture-email').value.trim();
     const whatsapp  = document.getElementById('email-capture-whatsapp').value.trim();
+    const cargoEl   = document.querySelector('input[name="email-capture-cargo"]:checked');
+    const cargo     = cargoEl ? cargoEl.value : '';
     if (!email) {
         document.getElementById('email-capture-error').classList.remove('d-none');
         return;
     }
     _emailCaptureModal.hide();
-    if (_emailCaptureResolve) { _emailCaptureResolve({ nome, email, whatsapp }); _emailCaptureResolve = null; }
+    if (_emailCaptureResolve) { _emailCaptureResolve({ nome, email, whatsapp, cargo }); _emailCaptureResolve = null; }
 }
 
 function renderProspectTable() {
@@ -1894,20 +2005,17 @@ function renderProspectTable() {
         const dealExists = db.phases.length > 0 && db.deals.some(d => d.name === p.empresa && d.phaseId === db.phases[0].id);
         const phoneEsc   = escHtml(p.telefone);
         return `<tr class="${rowCls}" title="${escHtml(p.empresa)}">
-            <td class="text-muted ps-2" style="width:36px;">${i + 1}</td>
-            <td title="${escHtml(p.empresa)}">
+            <td class="text-muted ps-2" data-col="num" style="width:36px;">${i + 1}</td>
+            <td data-col="empresa" title="${escHtml(p.empresa)}">
                 <span class="fw-semibold">${escHtml(p.empresa)}</span>
                 ${p.obs ? `<div style="font-size:.75rem;color:#6c757d;margin-top:2px;" title="${escHtml(p.obs)}"><i class="bi bi-chat-left-text me-1"></i>${escHtml(p.obs.length > 40 ? p.obs.slice(0,40)+'…' : p.obs)}</div>` : ''}
             </td>
-            <td>
-                <div class="phone-cell">
-                    <span>${phoneEsc}</span>
-                    <button class="btn-copy-phone" onclick="copyPhone('${phoneEsc}')" title="Copiar número"><i class="bi bi-clipboard"></i></button>
-                </div>
+            <td data-col="telefone">
+                <span>${phoneEsc}</span>
             </td>
-            <td class="text-muted" title="${escHtml(p.setor||'')}">${escHtml(p.setor || '—')}</td>
-            <td class="text-muted" title="${escHtml(p.cidade||'')}">${escHtml(p.cidade || '—')}</td>
-            <td>
+            <td class="text-muted" data-col="setor" title="${escHtml(p.setor||'')}">${escHtml(p.setor || '—')}</td>
+            <td class="text-muted" data-col="cidade" title="${escHtml(p.cidade||'')}">${escHtml(p.cidade || '—')}</td>
+            <td data-col="status">
                 <span class="status-badge ${st.cls}">${st.label}</span>
                 ${p.status === 'ligar_mais_tarde' && p.scheduledCall
                     ? `<div style="font-size:.72rem;color:#005f8a;margin-top:3px;white-space:nowrap;">
@@ -1915,12 +2023,15 @@ function renderProspectTable() {
                        </div>`
                     : ''}
             </td>
-            <td class="text-muted" title="${escHtml(p.responsavel||'')}">${escHtml(p.responsavel || '—')}</td>
-            <td class="text-muted" style="font-size:.82rem;" title="${escHtml(p.emailResp||'')}">
+            <td class="text-muted" data-col="responsavel" title="${escHtml(p.responsavel||'')}">
+                ${escHtml(p.responsavel || '—')}
+                ${p.cargo ? `<span style="font-size:.72rem;color:#6c757d;margin-left:3px;">(${escHtml(p.cargo)})</span>` : ''}
+            </td>
+            <td class="text-muted" data-col="email" style="font-size:.82rem;" title="${escHtml(p.emailResp||'')}">
                 ${escHtml(p.emailResp || '—')}
                 ${p.whatsapp ? `<div style="font-size:.75rem;color:#198754;margin-top:2px;" title="WhatsApp: ${escHtml(p.whatsapp)}"><i class="bi bi-whatsapp me-1"></i>${escHtml(p.whatsapp)}</div>` : ''}
             </td>
-            <td>
+            <td data-col="acoes">
                 <div class="d-flex gap-1">
                     ${isPending
                         ? `<button class="btn btn-primary btn-xs px-2 py-1" onclick="openCallResult('${p.id}')" title="Registrar resultado da ligação"><i class="bi bi-telephone-fill"></i></button>`
@@ -1940,6 +2051,114 @@ function renderProspectTable() {
 
     // Inicializa handles de resize após renderizar
     initResizableColumns();
+    // Re-aplica estado de colunas ocultas
+    _hiddenCols.forEach(col => _applyColVisibility(col, true));
+}
+
+// ============================================================
+// COPIAR TEXTO
+// ============================================================
+function copyText(text, event) {
+    if (event) event.stopPropagation();
+    const clean = String(text || '');
+    navigator.clipboard.writeText(clean).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = clean; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+    });
+    showToast(`Copiado: ${clean}`, 'success');
+}
+
+// ============================================================
+// OCULTAR / MOSTRAR COLUNAS
+// ============================================================
+let _hiddenCols = new Set();
+// Guarda as larguras originais dos <col> antes de ocultar
+const _colOriginalWidths = {};
+
+function hideCol(colName) {
+    _hiddenCols.add(colName);
+    _applyColVisibility(colName, true);
+}
+function showCol(colName) {
+    _hiddenCols.delete(colName);
+    _applyColVisibility(colName, false);
+}
+function _applyColVisibility(colName, hide) {
+    const table = document.getElementById('prospect-table');
+    if (!table) return;
+
+    // ── <col> no colgroup ──────────────────────────────────────
+    const col = table.querySelector(`colgroup col[data-col="${colName}"]`);
+    if (col) {
+        if (hide) {
+            // Salva largura original antes de colapsar
+            if (!_colOriginalWidths[colName]) {
+                _colOriginalWidths[colName] = col.style.width || '120px';
+            }
+            col.style.width    = '22px';
+            col.style.minWidth = '22px';
+            col.style.maxWidth = '22px';
+        } else {
+            col.style.width    = _colOriginalWidths[colName] || '120px';
+            col.style.minWidth = '';
+            col.style.maxWidth = '';
+        }
+    }
+
+    // ── <th> ──────────────────────────────────────────────────
+    const th = table.querySelector(`thead th[data-col="${colName}"]`);
+    if (th) {
+        if (hide) {
+            th.classList.add('col-hidden');
+            th.style.width    = '22px';
+            th.style.minWidth = '22px';
+            th.style.maxWidth = '22px';
+            // Troca × por olhinho
+            const hb = th.querySelector('.col-hide-btn');
+            if (hb) hb.remove();
+            if (!th.querySelector('.col-show-btn')) {
+                const sb = document.createElement('button');
+                sb.className = 'col-show-btn';
+                sb.title = 'Mostrar coluna';
+                sb.innerHTML = '<i class="bi bi-eye"></i>';
+                sb.onclick = (e) => { e.stopPropagation(); showCol(colName); };
+                th.appendChild(sb);
+            }
+        } else {
+            th.classList.remove('col-hidden');
+            th.style.width    = _colOriginalWidths[colName] || '';
+            th.style.minWidth = '';
+            th.style.maxWidth = '';
+            // Troca olhinho por ×
+            const sb = th.querySelector('.col-show-btn');
+            if (sb) sb.remove();
+            if (colName !== 'num' && colName !== 'acoes' && !th.querySelector('.col-hide-btn')) {
+                const hb = document.createElement('button');
+                hb.className = 'col-hide-btn';
+                hb.title = 'Ocultar coluna';
+                hb.textContent = '×';
+                hb.onclick = (e) => { e.stopPropagation(); hideCol(colName); };
+                th.appendChild(hb);
+            }
+        }
+    }
+
+    // ── <td>s do corpo ────────────────────────────────────────
+    table.querySelectorAll(`tbody td[data-col="${colName}"]`).forEach(td => {
+        if (hide) {
+            td.classList.add('col-hidden');
+            td.style.width    = '22px';
+            td.style.minWidth = '22px';
+            td.style.maxWidth = '22px';
+        } else {
+            td.classList.remove('col-hidden');
+            td.style.width    = '';
+            td.style.minWidth = '';
+            td.style.maxWidth = '';
+        }
+    });
 }
 
 function escHtml(str) {
@@ -1962,6 +2181,8 @@ function initResizableColumns() {
     headers.forEach((th, i) => {
         // A última coluna (Ações) não precisa de handle
         if (i >= headers.length - 1) return;
+        // Coluna oculta não recebe handle de resize
+        if (th.classList.contains('col-hidden')) return;
 
         const handle = document.createElement('div');
         handle.className = 'col-resize-handle';
@@ -1985,6 +2206,9 @@ function initResizableColumns() {
                 th.style.width    = newW + 'px';
                 th.style.minWidth = newW + 'px';
                 if (cols[i]) { cols[i].style.width = newW + 'px'; }
+                // Atualiza largura original caso esta coluna seja re-ocultada depois
+                const colName = th.getAttribute('data-col');
+                if (colName) _colOriginalWidths[colName] = newW + 'px';
             }
 
             function onUp() {
