@@ -870,8 +870,8 @@ function defaultDB() {
         userName: "João Silva",
         phases: [],
         deals: [],
-        counters: [],   // Array de { id, date (ISO), ligacoes, emails, diagAgend, diagRealizados, consultorias, commDiag, commConsult }
-        goals: { ligacoes: 0, emails: 0, diagAgend: 0, diagRealizados: 0, consultorias: 0 },
+        counters: [],   // Array de { id, date (ISO), ligacoes, emails, linkedin, diagAgend, diagRealizados, consultorias, commDiag, commConsult }
+        goals: { ligacoes: 0, emails: 0, linkedin: 0, diagAgend: 0, diagRealizados: 0, consultorias: 0 },
         prospectList: [],   // Array de { id, empresa, telefone, status, responsavel, emailResp, updatedAt }
         prospectScript: ''  // Script de prospecção (editado pelo Admin, visível para usuários)
     };
@@ -882,7 +882,8 @@ let db = (() => {
         const stored = JSON.parse(localStorage.getItem('funnelDB') || 'null');
         if (!stored) return defaultDB();
         if (!stored.counters) stored.counters = [];
-        if (!stored.goals) stored.goals = { ligacoes:0, emails:0, diagAgend:0, diagRealizados:0, consultorias:0 };
+        if (!stored.goals) stored.goals = { ligacoes:0, emails:0, linkedin:0, diagAgend:0, diagRealizados:0, consultorias:0 };
+        if (stored.goals.linkedin === undefined) stored.goals.linkedin = 0;
         if (!stored.prospectList)   stored.prospectList   = [];
         if (stored.prospectScript === undefined) stored.prospectScript = '';
         return stored;
@@ -922,9 +923,11 @@ function getTodayRecord() {
     const today = todayStr();
     let rec = db.counters.find(c => c.date === today);
     if (!rec) {
-        rec = { id: generateId(), date: today, ligacoes:0, emails:0, diagAgend:0, diagRealizados:0, consultorias:0, commDiag:0, commConsult:0 };
+        rec = { id: generateId(), date: today, ligacoes:0, emails:0, linkedin:0, diagAgend:0, diagRealizados:0, consultorias:0, commDiag:0, commConsult:0 };
         db.counters.push(rec);
     }
+    // Migra records antigos que não tinham linkedin
+    if (rec.linkedin === undefined) rec.linkedin = 0;
     return rec;
 }
 
@@ -932,12 +935,13 @@ function sumCounters(records) {
     return records.reduce((acc, r) => ({
         ligacoes:        acc.ligacoes        + (r.ligacoes||0),
         emails:          acc.emails          + (r.emails||0),
+        linkedin:        acc.linkedin        + (r.linkedin||0),
         diagAgend:       acc.diagAgend       + (r.diagAgend||0),
         diagRealizados:  acc.diagRealizados  + (r.diagRealizados||0),
         consultorias:    acc.consultorias    + (r.consultorias||0),
         commDiag:        acc.commDiag        + (r.commDiag||0),
         commConsult:     acc.commConsult     + (r.commConsult||0),
-    }), { ligacoes:0, emails:0, diagAgend:0, diagRealizados:0, consultorias:0, commDiag:0, commConsult:0 });
+    }), { ligacoes:0, emails:0, linkedin:0, diagAgend:0, diagRealizados:0, consultorias:0, commDiag:0, commConsult:0 });
 }
 
 function weekRecords() {
@@ -949,11 +953,12 @@ function weekRecords() {
 // DEFINIÇÃO DOS CONTADORES
 // ============================================================
 const COUNTER_DEFS = [
-    { key: 'ligacoes',       label: 'Ligações Realizadas', icon: 'bi-telephone-fill',    color: '#0d6efd', commission: false },
-    { key: 'emails',         label: 'Emails Capturados',   icon: 'bi-envelope-fill',     color: '#6f42c1', commission: false },
-    { key: 'diagAgend',      label: 'Diag. Agendados',     icon: 'bi-calendar-check-fill',color:'#fd7e14', commission: false },
-    { key: 'diagRealizados', label: 'Diag. Realizados',    icon: 'bi-clipboard2-check-fill', color:'#20c997', commission: true, defaultComm: 25 },
-    { key: 'consultorias',   label: 'Consultorias Contrat.', icon:'bi-briefcase-fill',   color: '#dc3545', commission: true, defaultComm: 175 },
+    { key: 'ligacoes',       label: 'Ligações Realizadas',   icon: 'bi-telephone-fill',       color: '#0d6efd', commission: false },
+    { key: 'emails',         label: 'Emails Capturados',     icon: 'bi-envelope-fill',         color: '#6f42c1', commission: false },
+    { key: 'linkedin',       label: 'Msgs LinkedIn',         icon: 'bi-linkedin',              color: '#0a66c2', commission: false },
+    { key: 'diagAgend',      label: 'Diag. Agendados',       icon: 'bi-calendar-check-fill',  color: '#fd7e14', commission: false },
+    { key: 'diagRealizados', label: 'Diag. Realizados',      icon: 'bi-clipboard2-check-fill', color: '#20c997', commission: true, defaultComm: 25 },
+    { key: 'consultorias',   label: 'Consultorias Contrat.', icon: 'bi-briefcase-fill',        color: '#dc3545', commission: true, defaultComm: 175 },
 ];
 
 // ============================================================
@@ -1154,6 +1159,7 @@ function renderReport(period) {
                         <th>Data</th>
                         <th>Ligações</th>
                         <th>Emails</th>
+                        <th><i class="bi bi-linkedin me-1" style="color:#0a66c2;"></i>LinkedIn</th>
                         <th>Diag. Agend.</th>
                         <th>Diag. Real.</th>
                         <th>Consultorias</th>
@@ -1165,6 +1171,7 @@ function renderReport(period) {
                             <td>${new Date(r.date+'T12:00:00').toLocaleDateString('pt-BR')}</td>
                             <td>${r.ligacoes||0}</td>
                             <td>${r.emails||0}</td>
+                            <td>${r.linkedin||0}</td>
                             <td>${r.diagAgend||0}</td>
                             <td>${r.diagRealizados||0}</td>
                             <td>${r.consultorias||0}</td>
@@ -1209,10 +1216,10 @@ function renderReport(period) {
 function exportReportCSV() {
     const records = getRecordsForPeriod(currentReportPeriod);
     if (!records.length) { showAlert('Nenhum dado para exportar neste período.', 'warning'); return; }
-    let csv = 'Data,Ligações,Emails,Diag. Agendados,Diag. Realizados,Consultorias,Comissão Diag,Comissão Consul,Total Comissões\n';
+    let csv = 'Data,Ligações,Emails,LinkedIn,Diag. Agendados,Diag. Realizados,Consultorias,Comissão Diag,Comissão Consul,Total Comissões\n';
     records.sort((a,b)=>a.date.localeCompare(b.date)).forEach(r => {
         const total = (r.commDiag||0)+(r.commConsult||0);
-        csv += `${r.date},${r.ligacoes||0},${r.emails||0},${r.diagAgend||0},${r.diagRealizados||0},${r.consultorias||0},${(r.commDiag||0).toFixed(2)},${(r.commConsult||0).toFixed(2)},${total.toFixed(2)}\n`;
+        csv += `${r.date},${r.ligacoes||0},${r.emails||0},${r.linkedin||0},${r.diagAgend||0},${r.diagRealizados||0},${r.consultorias||0},${(r.commDiag||0).toFixed(2)},${(r.commConsult||0).toFixed(2)},${total.toFixed(2)}\n`;
     });
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1379,7 +1386,9 @@ async function deletePhase(id) {
     if (ok) {
         db.phases = db.phases.filter(p => p.id !== id);
         db.deals  = db.deals.filter(d => d.phaseId !== id);
-        db.phases.forEach(p => p.branches = p.branches.filter(b => (b.type !== 'move' && b.type !== 'move_and_add_tasks') || b.targetId !== id));
+        db.phases.forEach(p => {
+            if (p.branches) p.branches = p.branches.filter(b => (b.type !== 'move' && b.type !== 'move_and_add_tasks') || b.targetId !== id);
+        });
         saveDB();
         showToast('Fase excluída.', 'danger');
     }
@@ -2323,7 +2332,7 @@ function confirmClearUserData() {
     db.userName     = 'João Silva';
     db.deals        = [];
     db.counters     = [];
-    db.goals        = { ligacoes:0, emails:0, diagAgend:0, diagRealizados:0, consultorias:0 };
+    db.goals        = { ligacoes:0, emails:0, linkedin:0, diagAgend:0, diagRealizados:0, consultorias:0 };
     db.prospectList = [];
     document.getElementById('clear-user-password-input').value = '';
     document.getElementById('clear-user-password-error').classList.add('d-none');
@@ -2336,6 +2345,12 @@ function confirmClearUserData() {
 // RENDER PRINCIPAL
 // ============================================================
 function render() {
+    // Garante que fases importadas/antigas sempre tenham tasks e branches
+    db.phases.forEach(p => {
+        if (!p.tasks)    p.tasks    = [];
+        if (!p.branches) p.branches = [];
+    });
+
     document.getElementById('user-panel').style.display  = currentMode === 'user'  ? 'block' : 'none';
     document.getElementById('admin-panel').style.display = currentMode === 'admin' ? 'block' : 'none';
     document.getElementById('display-user-name').innerText = db.userName;
@@ -2351,7 +2366,7 @@ function render() {
                 <div class="row mt-3" draggable="false">
                     <div class="col-md-6" ondragover="allowDrop(event)">
                         <h6>Tarefas Base <button class="btn btn-sm btn-outline-secondary ms-2" onclick="addTask('${p.id}')"><i class="bi bi-plus-lg"></i> Tarefa</button></h6>
-                        <ul class="p-0">${p.tasks.map(t => {
+                        <ul class="p-0">${(p.tasks || []).map(t => {
                             const hasScript = t.script ? 'btn-info text-white' : 'btn-outline-info';
                             return `<li class="draggable-task" draggable="true" ondragstart="dragTask(event,'${p.id}','${t.id}')" ondragover="allowDrop(event)" ondrop="dropTask(event,'${p.id}','${t.id}')">
                                 <i class="bi bi-grip-vertical text-muted"></i> ${t.name}
@@ -2364,7 +2379,7 @@ function render() {
                     </div>
                     <div class="col-md-6">
                         <h6>Bifurcações <button class="btn btn-sm btn-outline-secondary ms-2" onclick="addBranch('${p.id}')"><i class="bi bi-bezier2"></i> Bifurcação</button></h6>
-                        <ul class="ps-3">${p.branches.map(b => {
+                        <ul class="ps-3">${(p.branches || []).map(b => {
                             if (b.type === 'move') {
                                 const target = db.phases.find(ph => ph.id === b.targetId);
                                 return `<li class="mb-2"><strong>${b.name}</strong> ➔ Mover para: <em>${target ? target.name : '???'}</em> <a href="#" class="text-danger ms-2" onclick="deleteBranch('${p.id}','${b.id}');event.preventDefault()"><i class="bi bi-x-lg"></i></a></li>`;
